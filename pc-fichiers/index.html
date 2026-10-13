@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="robots" content="noindex, nofollow">
+<title>Souris et fichiers</title>
+<!-- Travail « pc-fichiers » — Technologie 5e (et 3e).
+     Prolonge la séquence 1 « Bases de l'informatique », séances 5 et 6 : gestes de la
+     souris, raccourcis, principe technique et ergonomie (leçon 5A) ; dossiers, fichiers,
+     chemin, extensions et octets (leçon 6A).
+     L'explorateur et l'escalier des octets reprennent les schémas des diapositives de la
+     séance 6 (mêmes fichiers, mêmes tailles, mêmes couleurs), redessinés en colonne pour
+     un téléphone, et l'explorateur se manipule vraiment. -->
+<link rel="stylesheet" href="../commun/maison.css">
+<link rel="stylesheet" href="../commun/jeux.css">
+<style>
+  /* Touches du clavier */
+  .touches{display:flex;flex-direction:column;gap:8px;padding:14px;width:100%;background:#fff;color:#222}
+  .touches p{display:flex;align-items:center;gap:8px;margin:0;font-weight:700}
+  kbd{display:inline-block;min-width:38px;padding:4px 8px;border-radius:8px;background:#eef1f5;border:1px solid #b8c0cc;
+      border-bottom-width:3px;font-family:var(--texte);font-weight:800;font-size:.95rem;text-align:center;color:#1b2230}
+  /* L'explorateur, aux couleurs du schéma de la séance 6 */
+  .explo{background:#fff;color:#2a2a2a;border:2px solid #9a9a9a;border-radius:14px;overflow:hidden}
+  .explo-barre{display:flex;align-items:center;gap:6px;background:#efe9e5;padding:8px 10px;border-bottom:1px solid #d8cfc8}
+  .explo-retour{flex:none;width:40px;height:40px;border-radius:10px;border:1px solid #c9bfb7;background:#fff;font-size:1.2rem;color:#5a3d2e}
+  .explo-retour:disabled{opacity:.35}
+  .explo-chemin{flex:1;min-width:0;font-size:.85rem;font-weight:700;color:#5a3d2e;overflow-wrap:anywhere;line-height:1.3}
+  .explo-liste{list-style:none;margin:0;padding:6px}
+  .explo-liste button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:6px 8px;border:none;border-radius:10px;
+      background:none;text-align:left;font-size:1.02rem;color:#2a2a2a}
+  .explo-liste button:active{background:#fbefe4}
+  .explo-liste .ico{font-size:1.5rem;flex:none;width:32px;text-align:center}
+  .explo-liste .taille{margin-left:auto;color:#8a7568;font-size:.85rem;font-weight:700}
+  .explo-liste button.rate{background:#ffe1e1}
+  .explo-liste button.trouve{background:#dff7e5;font-weight:800}
+  .cible{background:var(--carte);border:2px solid var(--soleil);border-radius:16px;padding:10px 14px;font-family:var(--titre);font-weight:600;font-size:1.2rem}
+  .cible small{display:block;color:var(--doux);font-family:var(--texte);font-size:.85rem;font-weight:700}
+</style>
+</head>
+<body>
+<main class="ecran" id="ecran"></main>
+
+<script src="../config.js"></script>
+<script src="../commun/maison.js"></script>
+<script src="../commun/jeux.js"></script>
+<script>
+'use strict';
+
+function touches(lignes){
+  return '<div class="touches">' + lignes.map(function(l){
+    return '<p>' + l[0].map(function(t){ return '<kbd>' + t + '</kbd>'; }).join(' + ') + ' <span>' + l[1] + '</span></p>';
+  }).join('') + '</div>';
+}
+
+/* L'escalier « De l'octet au gigaoctet » de la séance 6, en colonne. */
+var OCTETS = (function(){
+  var m = [['1 octet', '', 'une lettre', '#8a6d14', '#fbf6e9'], ['1 ko', '= 1 000 octets', 'une page de texte', '#b0701e', '#fcf3e7'],
+           ['1 Mo', '= 1 000 ko', 'une photo, une chanson', '#a5402d', '#fbf1ec'], ['1 Go', '= 1 000 Mo', 'un film', '#8a3a55', '#faf1f4']];
+  var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 330" font-family="Nunito, sans-serif">';
+  m.forEach(function(x, i){
+    var y = 250 - i * 78, w = 150 + i * 40;
+    s += '<rect x="' + (160 - w / 2) + '" y="' + y + '" width="' + w + '" height="64" rx="12" fill="' + x[4] + '" stroke="' + x[3] + '" stroke-width="3"/>' +
+      '<text x="160" y="' + (y + 27) + '" text-anchor="middle" font-size="22" font-weight="800" fill="' + x[3] + '">' + x[0] + ' <tspan font-size="14" font-weight="600" fill="#333">' + x[1] + '</tspan></text>' +
+      '<text x="160" y="' + (y + 50) + '" text-anchor="middle" font-size="14" font-style="italic" fill="#6b4a3a">' + x[2] + '</text>';
+    if(i < 3) s += '<text x="' + (160 + w / 2 + 6) + '" y="' + (y - 4) + '" font-size="13" font-weight="800" fill="#6b4a3a">×1000 ↑</text>';
+  });
+  return s + '</svg>';
+})();
+
+/* ------------------------------------------------------------------ l'explorateur */
+
+var ARBRE = { nom: 'Ce PC', enfants: [
+  { nom: 'Bureau', enfants: [{ nom: 'jeu-scratch.sb3', taille: '1,2 Mo' }] },
+  { nom: 'Documents', enfants: [
+    { nom: 'Techno', enfants: [
+      { nom: 'Séquence 1', enfants: [
+        { nom: 'Photos du remontage', enfants: [{ nom: 'remontage-1.jpg', taille: '2,1 Mo' }, { nom: 'remontage-2.jpg', taille: '2,4 Mo' }] },
+        { nom: 'lecon-1A.pdf', taille: '245 Ko' }, { nom: 'compte-rendu.docx', taille: '18 Ko' },
+        { nom: 'tour-ouverte.jpg', taille: '2,3 Mo' }, { nom: 'demontage.mp4', taille: '48 Mo' }, { nom: 'bruit-ventilateur.mp3', taille: '3,1 Mo' }] },
+      { nom: 'Séquence 2', enfants: [{ nom: 'mon-jeu.sb3', taille: '850 Ko' }] }] },
+    { nom: 'Français', enfants: [{ nom: 'dictee.docx', taille: '15 Ko' }, { nom: 'poesie.pdf', taille: '120 Ko' }] }] },
+  { nom: 'Images', enfants: [{ nom: 'velo.jpg', taille: '3,4 Mo' }, { nom: 'chat.jpg', taille: '1,8 Mo' }] },
+  { nom: 'Musique', enfants: [{ nom: 'chanson.mp3', taille: '4,2 Mo' }] }] };
+
+function icone(n){
+  if(n.enfants) return '📁';
+  var e = n.nom.split('.').pop();
+  return { jpg: '🖼️', docx: '📝', pdf: '📄', mp3: '🎵', mp4: '🎬', sb3: '🐱' }[e] || '📄';
+}
+
+/* « Trouve chanson.mp3 » : l'élève ouvre les dossiers, comme dans l'explorateur de
+   Windows. Un point par fichier trouvé sans s'être trompé de fichier plus d'une fois. */
+var CHASSE = { type: 'perso', max: 3, rendre: function(zone, fin, o){
+  var cibles = ['chanson.mp3', 'dictee.docx', 'tour-ouverte.jpg'], n = 0, pts = 0;
+  function chercher(){
+    var cible = cibles[n], pile = [ARBRE], rates = 0;
+    function dessiner(){
+      var ici = pile[pile.length - 1];
+      zone.innerHTML = '<p class="consigne">🔎 Ouvre les dossiers et touche le bon fichier. <span class="compte">' + (n + 1) + ' / 3</span></p>' +
+        '<div class="cible"><small>Trouve le fichier :</small>' + o.esc(cible) + '</div>' +
+        '<div class="explo"><div class="explo-barre"><button type="button" class="explo-retour" aria-label="Dossier du dessus"' + (pile.length > 1 ? '' : ' disabled') + '>↑</button>' +
+        '<span class="explo-chemin">' + pile.map(function(d){ return o.esc(d.nom); }).join(' › ') + '</span></div>' +
+        '<ul class="explo-liste">' + ici.enfants.map(function(c, k){
+          return '<li><button type="button" data-k="' + k + '"><span class="ico">' + icone(c) + '</span><span>' + o.esc(c.nom) + '</span>' +
+            (c.taille ? '<span class="taille">' + o.esc(c.taille) + '</span>' : '') + '</button></li>';
+        }).join('') + '</ul></div>';
+      zone.querySelector('.explo-retour').addEventListener('click', function(){ o.son.clic(); pile.pop(); dessiner(); });
+      o.$$('[data-k]', zone).forEach(function(b){
+        b.addEventListener('click', function(){
+          var c = ici.enfants[Number(b.getAttribute('data-k'))];
+          if(c.enfants){ o.son.clic(); pile.push(c); dessiner(); return; }
+          if(c.nom !== cible){ rates++; o.son.faux(); o.compter(false); b.classList.add('rate'); o.secouer(b); return; }
+          b.classList.add('trouve'); o.son.bon(); o.compter(rates < 2);
+          if(rates < 2) pts++;
+          var chemin = pile.slice(1).map(function(d){ return d.nom; }).concat(cible).join(' › ');
+          setTimeout(function(){
+            o.feuille(true, 'Trouvé !', 'Son chemin : **' + chemin + '**', function(){ n++; if(n < cibles.length) chercher(); else fin(pts); });
+          }, 500);
+        });
+      });
+    }
+    dessiner();
+  }
+  chercher();
+} };
+
+Jeux.lancer({
+  devoir: 'pc-fichiers',
+  titre: 'Souris et fichiers',
+  ic: '🗂️',
+  duree: '15 min',
+  missions: [
+
+    /* ---------------------------------------------------------------- 1 */
+    { nom: 'Souris et clavier', ic: '🖱️', accroche: 'Les gestes et les raccourcis.',
+      lecon: [
+        { titre: 'Les gestes de la souris', visuel: { img: 'img/mouse.webp', alt: 'Une souris', clair: true },
+          texte: 'Le **clic gauche** sélectionne.\nLe **double-clic** ouvre.\nLe **clic droit** ouvre un menu.\nLe **glisser-déposer** déplace.' },
+        { titre: 'Les raccourcis', visuel: { html: touches([[['Ctrl', 'C'], 'copie'], [['Ctrl', 'V'], 'colle'], [['Ctrl', 'Z'], 'annule'], [['Ctrl', 'S'], 'enregistre'], [['AltGr', 'à'], '@']]) },
+          texte: 'Un raccourci va plus vite qu’un menu.\n**Maj** donne les majuscules. **AltGr** donne le 3e signe d’une touche, comme **@**.' },
+        { titre: 'Pensé pour la main', visuel: { html: touches([[['F'], 'et'], [['J'], 'ont un petit relief']]) },
+          texte: 'Souris, pavé tactile, écran tactile : même fonction, **pointer**.\nLes touches F et J ont un relief pour placer les doigts sans regarder : c’est l’**ergonomie**.' }
+      ],
+      jeux: [
+        { type: 'paires', consigne: 'Relie chaque geste à ce qu’il fait.', titres: ['Le geste', 'Il…'],
+          paires: [[{ ic: '👆', txt: 'Clic gauche' }, 'sélectionne'], [{ ic: '✌️', txt: 'Double-clic' }, 'ouvre'],
+                   [{ ic: '👉', txt: 'Clic droit' }, 'ouvre un menu'], [{ ic: '✊', txt: 'Glisser-déposer' }, 'déplace']] },
+        { type: 'paires', consigne: 'Relie chaque raccourci à ce qu’il fait.', titres: ['Raccourci', 'Il…'],
+          paires: [['Ctrl + C', 'copie'], ['Ctrl + V', 'colle'], ['Ctrl + Z', 'annule'], ['Ctrl + S', 'enregistre']] },
+        { type: 'qcm', q: 'Pour écrire **@**, quelle touche j’utilise avec la touche à ?', grille: true,
+          choix: ['AltGr', 'Maj', 'Ctrl', 'Entrée'], bon: 0, explication: 'AltGr donne le troisième signe d’une touche : AltGr + à donne @.' },
+        { type: 'qcm', q: 'Les touches F et J ont un petit relief. À quoi sert-il ?',
+          choix: ['À placer les doigts sans regarder', 'À décorer le clavier', 'À taper plus fort'], bon: 0,
+          explication: 'C’est un choix d’ergonomie : le clavier est pensé pour la main.' },
+        { type: 'qcm', q: 'Comment la souris optique sait-elle que tu la bouges ?',
+          choix: ['Une lumière et un capteur', 'Une boule qui roule', 'Le doigt sur une surface sensible'], bon: 0,
+          explication: 'Retourne une souris optique : une petite lumière éclaire la table, un capteur la voit défiler. C’est son principe technique.' }
+      ] },
+
+    /* ---------------------------------------------------------------- 2 */
+    { nom: 'Où est mon fichier ?', ic: '🌳', accroche: 'Dossiers, fichiers et chemin.',
+      lecon: [
+        { titre: 'Fichier ou dossier ?', visuel: { ic: '📄 📁' },
+          texte: 'Un **fichier** contient des données : un texte, une image, un son.\nUn **dossier** contient des fichiers et d’autres dossiers.\nRangés les uns dans les autres, ils forment une **arborescence**.' },
+        { titre: 'Le chemin', visuel: { html: '<div class="explo" style="width:100%"><div class="explo-barre"><span class="explo-chemin">Ce PC › Documents › Techno › Séquence 1</span></div></div>' },
+          texte: 'Le **chemin** dit où se trouve un fichier : les dossiers à ouvrir, l’un dans l’autre.' }
+      ],
+      jeux: [
+        CHASSE,
+        { type: 'ordre', consigne: 'Écris le chemin de **tour-ouverte.jpg** : touche les morceaux dans l’ordre.',
+          items: [{ ic: '📁', txt: 'Documents' }, { ic: '📁', txt: 'Techno' }, { ic: '📁', txt: 'Séquence 1' }, { ic: '🖼️', txt: 'tour-ouverte.jpg' }] },
+        { type: 'tri', consigne: 'Fichier ou dossier ?',
+          bacs: [{ nom: 'Fichier', ic: '📄', couleur: '#c9a68a' }, { nom: 'Dossier', ic: '📁', couleur: '#e8b04a' }],
+          cartes: [
+            { txt: 'chanson.mp3', bac: 0, pourquoi: 'Il y a un point et une extension : c’est un fichier (un son).' },
+            { txt: 'Musique', bac: 1, pourquoi: 'Musique range des fichiers : c’est un dossier.' },
+            { txt: 'lecon-1A.pdf', bac: 0, pourquoi: '.pdf : c’est un fichier, un document à lire.' },
+            { txt: 'Photos du remontage', bac: 1, pourquoi: 'Il contient des photos : c’est un dossier.' },
+            { txt: 'demontage.mp4', bac: 0, pourquoi: '.mp4 : c’est un fichier, une vidéo.' }
+          ] }
+      ] },
+
+    /* ---------------------------------------------------------------- 3 */
+    { nom: 'Les extensions', ic: '🏷️', accroche: 'Les lettres après le point.',
+      lecon: [
+        { titre: 'L’extension', visuel: { html: '<div class="touches"><p>🖼️ photo-velo<b style="color:#a5402d">.jpg</b> → une image</p><p>📝 compte-rendu<b style="color:#a5402d">.docx</b> → un texte</p>' +
+            '<p>🎵 chanson<b style="color:#a5402d">.mp3</b> → un son</p><p>🎬 demontage<b style="color:#a5402d">.mp4</b> → une vidéo</p><p>📄 lecon-1A<b style="color:#a5402d">.pdf</b> → un document à lire</p></div>' },
+          texte: 'L’**extension**, ce sont les lettres **après le point**.\nElle dit le **type** du fichier.' }
+      ],
+      jeux: [
+        { type: 'paires', consigne: 'Relie chaque extension à ce que contient le fichier.', titres: ['Extension', 'Il contient'],
+          paires: [['.jpg', { ic: '🖼️', txt: 'une image' }], ['.docx', { ic: '📝', txt: 'un texte' }], ['.mp3', { ic: '🎵', txt: 'un son' }],
+                   ['.mp4', { ic: '🎬', txt: 'une vidéo' }], ['.pdf', { ic: '📄', txt: 'un document à lire' }]] },
+        { type: 'qcm', q: 'Lequel de ces fichiers est une **vidéo** ?',
+          choix: ['vacances.mp4', 'vacances.mp3', 'vacances.jpg', 'vacances.docx'], bon: 0,
+          explication: '.mp4 : c’est une vidéo. .mp3 est un son, .jpg une image, .docx un texte.' },
+        { type: 'qcm', q: 'Dans le nom **robot-final.docx**, quelle est l’extension ?', grille: true,
+          choix: ['.docx', 'robot', 'final', 'robot-final'], bon: 0,
+          explication: 'L’extension, ce sont les lettres après le point : .docx (un texte).' }
+      ] },
+
+    /* ---------------------------------------------------------------- 4 */
+    { nom: 'Léger ou lourd ?', ic: '⚖️', accroche: 'Octets, ko, Mo, Go.',
+      lecon: [
+        { titre: 'De l’octet au gigaoctet', visuel: { svg: OCTETS, alt: '1 octet, 1 ko, 1 Mo, 1 Go', clair: true },
+          texte: 'La taille d’un fichier se mesure en **octets**.\nÀ chaque marche, on multiplie par **1 000**.' },
+        { titre: 'Pour se repérer', visuel: { ic: '📝 🖼️ 🎬' },
+          texte: 'Une page de texte : quelques **ko**.\nUne photo, une chanson : quelques **Mo**.\nUn film : quelques **Go**.' }
+      ],
+      jeux: [
+        { type: 'ordre', consigne: 'Range ces fichiers du **plus léger** au **plus lourd**.',
+          items: [{ ic: '📝', txt: 'compte-rendu.docx · 18 Ko' }, { ic: '📄', txt: 'lecon-1A.pdf · 245 Ko' }, { ic: '🖼️', txt: 'tour-ouverte.jpg · 2,3 Mo' },
+                  { ic: '🎵', txt: 'bruit-ventilateur.mp3 · 3,1 Mo' }, { ic: '🎬', txt: 'demontage.mp4 · 48 Mo' }],
+          explication: 'Ko, puis Mo : 1 Mo = 1 000 Ko. Un texte pèse peu, une vidéo beaucoup.' },
+        { type: 'qcm', q: 'Lequel est le plus lourd ?', grille: true, choix: ['1 Go', '900 Mo'], bon: 0,
+          explication: '1 Go = 1 000 Mo. C’est plus que 900 Mo.' },
+        { type: 'qcm', q: 'Un film entier pèse environ…', grille: true, choix: ['quelques Go', 'quelques ko'], bon: 0,
+          explication: 'Un film : quelques Go. Une page de texte : quelques ko.' }
+      ] }
+  ]
+});
+</script>
+</body>
+</html>

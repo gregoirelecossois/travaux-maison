@@ -6,117 +6,50 @@
 <meta name="theme-color" content="#0b0e14">
 <meta name="robots" content="noindex, nofollow">
 <title>Modèle de travail</title>
-
-<!-- MODÈLE D'UNE PAGE DE TRAVAIL — à copier dans un nouveau dossier (sciences-1/, …),
+<!-- MODÈLE D'UNE PAGE DE TRAVAIL — à copier dans un nouveau dossier (sciences-eau-1/, …),
      jamais à distribuer tel quel. Le dossier _modele/ n'est pas publié : GitHub Pages
      (Jekyll) ignore les dossiers qui commencent par « _ ».
 
-     Ce qu'il montre, et que toute page de travail doit faire :
-       - charger ../config.js puis ../commun/maison.js, et appeler Maison.travail() avec
-         le MÊME identifiant, le même nombre d'étapes que dans catalogue.js ;
-       - une liste des étapes, chacune rejouable, avec son meilleur score ;
-       - suivi.terminer(étape, score) à la fin de chaque étape ;
-       - un retour vers « Mes révisions » (suivi.entree) ;
-       - sans élève (page ouverte sans passer par l'entrée) : renvoyer vers l'entrée.
+     Une page de travail n'écrit que son CONTENU : commun/jeux.js fait le reste
+     (élève, carte des missions, leçons, jeux, étoiles, envoi au professeur, mode
+     professeur). Les types de jeux et le format des visuels sont décrits en tête de
+     commun/jeux.js. Exemples complets : pc-peripheriques/, lumiere-1/, nerveux-1/.
 
-     Le contenu (QUESTIONS) n'est qu'un exemple : chaque travail a le sien. -->
-
+     À reporter dans catalogue.js : le MÊME devoir, une étape par mission, dans l'ordre. -->
 <link rel="stylesheet" href="../commun/maison.css">
-<style>
-  .tete{display:flex;align-items:center;gap:10px}
-  .tete h1{flex:1;font-size:1.6rem}
-  .retour{color:var(--doux);font-weight:700;text-decoration:none;font-size:.95rem}
-  .etapes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-  .etape{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--carte);
-       border:2px solid var(--trait-fort);border-radius:18px;padding:14px 16px}
-  .etape.faite{border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
-  .etape .num{flex:none;width:40px;height:40px;border-radius:12px;background:var(--carte-2);display:grid;place-items:center;
-       font-family:var(--titre);font-weight:600}
-  .etape.faite .num{background:var(--ok-fond);color:var(--ok)}
-  .etape .nom{flex:1;font-family:var(--titre);font-weight:600;font-size:1.1rem}
-  .etape .score{color:var(--doux);font-weight:800;font-size:.9rem}
-  .question h2{font-size:1.4rem}
-  .reponses{display:flex;flex-direction:column;gap:10px}
-  .reponses .btn:disabled{opacity:1}
-  .reponses .btn.bon{background:var(--ok-fond);border-color:var(--ok);color:var(--ok)}
-  .reponses .btn.faux{background:var(--ko-fond);border-color:var(--ko);color:#ffd3d3}
-</style>
+<link rel="stylesheet" href="../commun/jeux.css">
 </head>
 <body>
 <main class="ecran" id="ecran"></main>
 
 <script src="../config.js"></script>
 <script src="../commun/maison.js"></script>
+<script src="../commun/jeux.js"></script>
 <script>
 'use strict';
 
-/* Le contenu du travail : une liste d'étapes, chacune une liste de questions. */
-var ETAPES = [
-  { nom: 'Échauffement', questions: [
-    { q: 'Combien font 2 + 2 ?', choix: ['3', '4', '5'], bon: 1 },
-    { q: 'Quelle est la couleur du ciel par beau temps ?', choix: ['Bleu', 'Vert'], bon: 0 }
-  ] },
-  { nom: 'Le défi', questions: [
-    { q: 'Combien de pattes a une araignée ?', choix: ['6', '8', '10'], bon: 1 }
-  ] }
-];
-var MAX = ETAPES.reduce(function(n, e){ return n + e.questions.length; }, 0);
-
-/* ⚠ Le même identifiant et le même nombre d'étapes que dans catalogue.js. */
-var suivi = Maison.travail({ devoir: 'modele', etapes: ETAPES.length, max: MAX });
-
-function $(s){ return document.querySelector(s); }
-function esc(s){ return String(s == null ? '' : s)
-  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function accueil(){
-  if(!suivi.eleve){
-    $('#ecran').innerHTML = '<div class="carte"><h1>Passe d’abord par tes révisions</h1>' +
-      '<p class="soustitre" style="margin:8px 0 14px">Cette page s’ouvre depuis la page « Mes révisions à la maison ».</p>' +
-      '<a class="btn primaire geant" href="' + esc(suivi.entree) + '">Mes révisions →</a></div>';
-    return;
-  }
-  var envoi = suivi.prof ? 'Mode professeur : rien n’est envoyé, rien n’est gardé.' : { entrainement: 'Mode entraînement : ton professeur ne verra pas ce travail.',
-                attente: 'Ton travail partira vers ton professeur dès que le réseau sera là.',
-                refuse: '⚠ Ce lien ne marche plus. Demande le nouveau lien à ton professeur.' }[suivi.envoi];
-  $('#ecran').innerHTML =
-    '<header class="tete"><a class="retour" href="' + esc(suivi.entree) + '">‹ Mes révisions</a></header>' +
-    '<h1>Modèle de travail</h1>' +
-    '<p class="soustitre">' + esc(suivi.eleve.prenom) + ', fais les étapes dans l’ordre. Tu peux en refaire une pour améliorer ton score.</p>' +
-    (envoi ? '<p class="avertir' + (suivi.envoi === 'refuse' ? ' ko' : '') + '">' + esc(envoi) + '</p>' : '') +
-    '<ul class="etapes">' + ETAPES.map(function(e, i){
-      var s = suivi.scores[i];
-      return '<li><button type="button" class="etape' + (s >= 0 ? ' faite' : '') + '" data-etape="' + i + '">' +
-        '<span class="num">' + (s >= 0 ? '✓' : i + 1) + '</span><span class="nom">' + esc(e.nom) + '</span>' +
-        (s >= 0 ? '<span class="score">' + s + ' / ' + e.questions.length + '</span>' : '') + '</button></li>';
-    }).join('') + '</ul>' +
-    (suivi.etapesFaites() === ETAPES.length
-      ? '<div class="carte" style="text-align:center"><h2>🎉 Tout est fait !</h2><a class="btn primaire" style="margin-top:12px" href="' + esc(suivi.entree) + '">Retour à mes révisions</a></div>' : '');
-  Array.prototype.forEach.call(document.querySelectorAll('[data-etape]'), function(b){
-    b.addEventListener('click', function(){ jouer(Number(b.getAttribute('data-etape')), 0, 0); });
-  });
-}
-
-function jouer(i, n, score){
-  var e = ETAPES[i], q = e.questions[n];
-  if(!q){ suivi.terminer(i, score); accueil(); window.scrollTo(0, 0); return; }
-  $('#ecran').innerHTML = '<p class="soustitre">' + esc(e.nom) + ' · ' + (n + 1) + ' / ' + e.questions.length + '</p>' +
-    '<section class="question carte"><h2>' + esc(q.q) + '</h2></section>' +
-    '<div class="reponses">' + q.choix.map(function(c, k){
-      return '<button type="button" class="btn geant" data-choix="' + k + '">' + esc(c) + '</button>';
-    }).join('') + '</div>';
-  Array.prototype.forEach.call(document.querySelectorAll('[data-choix]'), function(b){
-    b.addEventListener('click', function(){
-      var k = Number(b.getAttribute('data-choix')), juste = k === q.bon;
-      b.classList.add(juste ? 'bon' : 'faux');
-      Array.prototype.forEach.call(document.querySelectorAll('[data-choix]'), function(x){ x.disabled = true; });
-      setTimeout(function(){ jouer(i, n + 1, score + (juste ? 1 : 0)); }, 700);
-    });
-  });
-}
-
-suivi.surChangement(function(){ if(document.querySelector('.etapes')) accueil(); });
-accueil();
+Jeux.lancer({
+  devoir: 'modele',          /* ⚠ le même id que dans catalogue.js, jamais renommé */
+  titre: 'Modèle de travail',
+  ic: '📘',
+  duree: '10 min',
+  missions: [
+    { nom: 'Échauffement', ic: '🔥', accroche: 'Une phrase pour donner envie.',
+      lecon: [
+        { titre: 'Ce qu’il faut retenir', visuel: { ic: '💡' }, texte: 'Une ou deux phrases **courtes**.' }
+      ],
+      jeux: [
+        { type: 'qcm', q: 'Combien font 2 + 2 ?', choix: ['4', '3', '5'], bon: 0, explication: '2 + 2 = 4.' },
+        { type: 'vf', q: 'Le ciel est vert par beau temps.', vrai: false, explication: 'Il est bleu.' }
+      ] },
+    { nom: 'Le défi', ic: '🏆',
+      jeux: [
+        { type: 'tri', consigne: 'Dans quelle case ?',
+          bacs: [{ nom: 'Animal', ic: '🐾' }, { nom: 'Objet', ic: '📦', couleur: '#ffd166' }],
+          cartes: [{ txt: 'Un chat', ic: '🐱', bac: 0 }, { txt: 'Une chaise', ic: '🪑', bac: 1, pourquoi: 'On ne la nourrit pas !' }] }
+      ] }
+  ]
+});
 </script>
 </body>
 </html>

@@ -33,15 +33,19 @@ Pas de mot de passe : à la maison, un mot de passe oublié est un devoir non fa
 | `config.js` | l'adresse du serveur de l'Atelier |
 | `commun/maison.js` | ce que toute page de travail partage : lire l'élève, garder et envoyer l'avancée |
 | `commun/maison.css`, `commun/fonts/` | l'allure commune, polices servies en local |
+| `commun/jeux.js`, `commun/jeux.css` | le moteur des travaux : missions, leçons, mini-jeux, étoiles |
+| `<id>/` | un travail : `pc-peripheriques`, `pc-fichiers` (5e, 3e), `ia-1`, `lumiere-1` (4e), `nerveux-1` (3e) |
 | `_modele/` | une page de travail à copier pour en créer une nouvelle (non publiée) |
 | `outils/essai.mjs` | serveur d'essai local avec une fausse API (non publié) |
+| `outils/robot.js`, `outils/images.js` | tester une page en jouant au hasard ; préparer les images (non publiés) |
 
 Les pages de travaux vivent ici, un dossier par travail — sauf celles qui prolongent une
 application : « Le PC à la maison » (`pc-1`) est publiée par le dépôt `le-pc`.
 
 ## Ajouter un travail
 
-Voir `CLAUDE.md` : la marche à suivre pas à pas. En bref : écrire la page (à partir de
+Voir `CLAUDE.md` : la marche à suivre pas à pas, et la compétence Claude
+`.claude/skills/devoir-maison/` pour fabriquer le contenu à partir des séances. En bref : écrire la page (à partir de
 `_modele/`), l'ajouter à `catalogue.js`, essayer avec `node outils/essai.mjs`, publier.
 Rien à changer sur le serveur. Les classes à qui va le travail se choisissent ensuite
 d'un clic dans la page de suivi.

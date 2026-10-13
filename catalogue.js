@@ -49,6 +49,61 @@ window.CLASSES_MAISON = ['6e', '5e', '4e', '3e'];
 
 window.TRAVAUX = [
   {
+    id: 'nerveux-1',
+    titre: 'Mon système nerveux',
+    ic: '🧠',
+    matiere: 'Sciences',
+    niveaux: ['3e'],
+    duree: '15 min',
+    resume: 'Tester ses réflexes, se faire piéger par son cerveau, suivre le message nerveux jusqu’au muscle.',
+    url: 'https://gregoirelecossois.github.io/travaux-maison/nerveux-1/',
+    etapes: ['Le temps de réaction', 'Mes sens me trompent', 'Le trajet du message']
+  },
+  {
+    id: 'lumiere-1',
+    titre: 'La lumière',
+    ic: '💡',
+    matiere: 'Sciences',
+    niveaux: ['4e'],
+    duree: '15 min',
+    resume: 'Comment on voit, les sources de lumière, opaque ou transparent, et une lampe à déplacer pour jouer avec les ombres.',
+    url: 'https://gregoirelecossois.github.io/travaux-maison/lumiere-1/',
+    etapes: ['Comment je vois', 'Source ou objet diffusant ?', 'Tout droit !', 'Opaque ou transparent ?', 'Les ombres']
+  },
+  {
+    id: 'ia-1',
+    titre: 'L’IA en rappel',
+    ic: '🤖',
+    matiere: 'Technologie',
+    niveaux: ['4e'],
+    duree: '12 min',
+    resume: 'Trier les IA classiques et génératives, jouer au LLM qui devine le mot suivant, revoir comment une IA apprend.',
+    url: 'https://gregoirelecossois.github.io/travaux-maison/ia-1/',
+    etapes: ['IA ou pas IA ?', 'Sois le LLM !', 'Comment une IA apprend']
+  },
+  {
+    id: 'pc-peripheriques',
+    titre: 'Autour du PC',
+    ic: '🔌',
+    matiere: 'Technologie',
+    niveaux: ['5e', '3e'],
+    duree: '15 min',
+    resume: 'Les périphériques d’entrée et de sortie, la bonne prise, la chaîne d’information et ouvrir la tour sans danger.',
+    url: 'https://gregoirelecossois.github.io/travaux-maison/pc-peripheriques/',
+    etapes: ['Entrée ou sortie ?', 'La bonne prise', 'La chaîne d’information', 'Ouvrir sans danger']
+  },
+  {
+    id: 'pc-fichiers',
+    titre: 'Souris et fichiers',
+    ic: '🗂️',
+    matiere: 'Technologie',
+    niveaux: ['5e', '3e'],
+    duree: '15 min',
+    resume: 'Gestes et raccourcis, retrouver un fichier dans l’explorateur, extensions et octets.',
+    url: 'https://gregoirelecossois.github.io/travaux-maison/pc-fichiers/',
+    etapes: ['Souris et clavier', 'Où est mon fichier ?', 'Les extensions', 'Léger ou lourd ?']
+  },
+  {
     id: 'pc-1',
     titre: 'Le PC à la maison',
     ic: '🖥️',

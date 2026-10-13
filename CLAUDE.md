@@ -22,6 +22,10 @@ Les deux dépôts voisins sont déclarés dans `.claude/settings.local.json`
 
 ## Ajouter un travail — la marche à suivre
 
+La compétence **`devoir-maison`** (`.claude/skills/devoir-maison/SKILL.md`) dit comment
+fabriquer le contenu à partir des séances (dossiers `sequences-*-erea`), quels visuels
+reprendre, et comment tester. La lire à chaque demande de devoir.
+
 1. **Où va la page ?**
    - Sciences, Atelier informatique, ou tout travail autonome → **ici**, dans un dossier
      `<id>/index.html` (ex. `sciences-eau-1/index.html`). Partir de `_modele/index.html`.
@@ -30,12 +34,15 @@ Les deux dépôts voisins sont déclarés dans `.claude/settings.local.json`
 2. **Choisir l'identifiant** `id` : `[a-z0-9-]`, 30 caractères au plus (`sciences-eau-1`).
    Il range les résultats sur le serveur : **ne jamais le renommer** une fois distribué.
 3. **Écrire la page** (cas « ici ») :
-   - charger `../config.js` puis `../commun/maison.js`, et `../commun/maison.css` ;
-   - `var suivi = Maison.travail({ devoir: '<id>', etapes: N, max: M })` — le même `id`
-     et le même nombre d'étapes que dans le catalogue ;
-   - `suivi.terminer(i, score)` à la fin de chaque étape ; chaque étape rejouable ;
-   - sans élève (`!suivi.eleve`), renvoyer vers `suivi.entree` ; toujours un lien
-     « ‹ Mes révisions » vers `suivi.entree`.
+   - charger `../config.js`, `../commun/maison.js` puis `../commun/jeux.js`, et
+     `../commun/maison.css` + `../commun/jeux.css` ;
+   - `Jeux.lancer({ devoir: '<id>', titre, ic, duree, missions: [...] })` : une mission
+     = une étape du catalogue (même `id`, même nombre, même ordre). Le moteur appelle
+     `Maison.travail()`, garde le meilleur score, renvoie vers l'entrée sans élève, met
+     le lien « ‹ Mes révisions ». Format des missions et des jeux : en tête de
+     `commun/jeux.js` ;
+   - une page qui n'utilise pas le moteur doit faire tout cela elle-même avec
+     `Maison.travail()` (voir l'en-tête de `commun/maison.js`).
    - Mode professeur (`?prof=1`, bouton « ▶ Essayer » de la page de suivi) : `maison.js`
      s'en charge (élève « Prof », rien d'envoyé ni de gardé, `suivi.entree` ramène au
      suivi). Ne rien verrouiller quand `suivi.prof`. L'enseignant n'a qu'une page : le suivi.
@@ -65,9 +72,15 @@ node outils/essai.mjs        → http://localhost:8790/?c=essai123
 
 Sert ce dépôt avec une **fausse API en mémoire** (faux élèves : Léa Martin, Léa Moreau,
 Tom Durand en 5e ; Inès Bernard en 3e). `GET /__etat` montre ce que la page a envoyé.
-Configuration de prévisualisation : `travaux-maison-essai` (dans le `.claude/launch.json`
-du dossier parent `Applications-web`). **Ne jamais tester contre le vrai serveur** : il
-contient de vraies données d'élèves.
+Configuration de prévisualisation : `travaux-maison-essai` (dans `.claude/launch.json`
+ici et dans celui du dossier parent `Applications-web`). **Ne jamais tester contre le
+vrai serveur** : il contient de vraies données d'élèves.
+
+- `outils/robot.js` : joue toutes les missions d'une page au hasard pour vérifier
+  qu'aucune ne bloque (`await import('/outils/robot.js'); Robot.toutJouer()`).
+- `outils/images.js` : convertit les images des séances en webp léger, écrites dans le
+  dépôt par le serveur d'essai (route `POST /__image`, locale). Sources dans `_images/`
+  (ignoré par git, non publié).
 
 ## Règles à ne pas casser
 
@@ -83,7 +96,11 @@ contient de vraies données d'élèves.
   accepte déjà (prénom tapé, classe, étapes, score). Toute nouvelle donnée collectée doit
   être reportée dans les documents RGPD de l'établissement : le signaler à l'enseignant.
 - `_modele/` et les fichiers listés dans `_config.yml` ne sont **pas publiés**.
-- Les identifiants déjà distribués : `pc-1`.
+- Les identifiants déjà distribués : `pc-1`, `pc-peripheriques`, `pc-fichiers`, `ia-1`,
+  `lumiere-1`, `nerveux-1`.
+- Images publiées : seulement des visuels faits pour les séances, des photos du jeu
+  Le PC ou du domaine public — jamais des documents de manuels ni des banques d'images
+  (les pages sont publiques). Sinon, redessiner en SVG.
 
 ## Git
 

@@ -5,3 +5,5 @@ outils/*.log
 node_modules/
 .DS_Store
 Thumbs.db
+# Images sources en cours de préparation (outils/images.js)
+_images/

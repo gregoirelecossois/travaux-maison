@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="robots" content="noindex, nofollow">
+<title>Mon système nerveux</title>
+<!-- Travail « nerveux-1 » — Sciences 3e.
+     Séquence 1 « Le fonctionnement du système nerveux et le rôle du cerveau », séances 1
+     à 3 : le temps de réaction (leçon 1A), tromper ses sens (leçon 2A), le message
+     nerveux du récepteur au muscle (leçon 3A).
+     Visuels repris des séances : le schéma du basketteur (séance 1), le lapin-canard
+     (gravure de 1892, domaine public) et les segments de l'atelier B2 (séance 2), le
+     schéma muet du trajet du message (illustrations/trajet_muet.png, séance 3).
+     Le neurone et la synapse sont redessinés ici, plus simples que les documents du
+     manuel (qu'on ne peut pas republier en ligne). -->
+<link rel="stylesheet" href="../commun/maison.css">
+<link rel="stylesheet" href="../commun/jeux.css">
+<style>
+  .reflexe{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
+  .reflexe .gros-rond{transition:background .1s;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .reflexe .gros-rond.attends{background:#e5484d;color:#fff}
+  .reflexe .gros-rond.vas-y{background:#30c26b;color:#04210f}
+  .essais{list-style:none;margin:0;padding:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .essais li{background:var(--carte);border:1px solid var(--trait-fort);border-radius:12px;padding:6px 10px;font-weight:800}
+</style>
+</head>
+<body>
+<main class="ecran" id="ecran"></main>
+
+<script src="../config.js"></script>
+<script src="../commun/maison.js"></script>
+<script src="../commun/jeux.js"></script>
+<script>
+'use strict';
+
+var ORGANE = '#4dd0e1', CERVEAU = '#f78fb3';
+
+/* L'atelier B2 de la séance 2 : [AB] et [BC] ont la même longueur. */
+var SEGMENTS = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" font-family="Nunito, sans-serif" font-size="20" font-weight="800">' +
+  '<rect width="340" height="120" fill="#fff"/><g stroke="#111" stroke-width="3" fill="none" stroke-linecap="round">' +
+  '<path d="M20 55H300"/><path d="M48 33L20 55L48 77"/><path d="M132 33L160 55L132 77"/><path d="M300 55L330 30M300 55L330 80"/></g>' +
+  '<text x="14" y="104" fill="#111">A</text><text x="153" y="104" fill="#111">B</text><text x="292" y="104" fill="#111">C</text></svg>';
+
+/* L'atelier B3 : la grille. Les points gris aux croisements n'existent pas. */
+var GRILLE = (function(){
+  var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250"><rect width="250" height="250" fill="#fff"/>';
+  for(var i = 0; i < 5; i++) for(var j = 0; j < 5; j++) s += '<rect x="' + (6 + i * 49) + '" y="' + (6 + j * 49) + '" width="40" height="40" fill="#000"/>';
+  return s + '</svg>';
+})();
+
+/* Un neurone, puis une synapse, très simplifiés. */
+var NEURONE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 200" font-family="Nunito, sans-serif" font-size="13" font-weight="700">' +
+  '<rect width="340" height="200" fill="#fff"/>' +
+  '<g stroke="#9b7cc0" stroke-width="4" fill="none" stroke-linecap="round"><path d="M40 70l-22-20M40 70l-26 8M40 70l-12 26M52 52l-6-30M60 56l18-24"/>' +
+  '<path d="M60 76C110 90 150 70 196 82"/><path d="M196 82l16-16M196 82l18 4M196 82l10 18"/>' +
+  '<path d="M246 100l-18-16M246 100l-22 6M246 100l-8 20"/><path d="M262 104C290 110 310 130 326 150"/></g>' +
+  '<circle cx="50" cy="68" r="18" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/><circle cx="50" cy="68" r="6" fill="#6b4a8a"/>' +
+  '<circle cx="254" cy="100" r="15" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/>' +
+  '<g fill="#2bb3a3"><circle cx="218" cy="84" r="3"/><circle cx="224" cy="92" r="3"/><circle cx="216" cy="96" r="3"/><circle cx="226" cy="82" r="3"/></g>' +
+  '<text x="14" y="125" fill="#333">corps cellulaire</text><text x="100" y="62" fill="#333">prolongement</text>' +
+  '<text x="170" y="140" fill="#2b8a7e">synapse :</text><text x="170" y="156" fill="#2b8a7e">neurotransmetteurs</text>' +
+  '<text x="236" y="70" fill="#333">neurone 2</text><path d="M214 128L220 102" stroke="#2b8a7e" stroke-width="2"/>' +
+  '<text x="14" y="185" fill="#a5402d">⚡ électrique le long du neurone · 🧪 chimique dans la synapse</text></svg>';
+
+/* ------------------------------------------------------------------ le réflexe */
+
+/* « Touche quand c'est vert » : trois essais, chacun mesuré. Un point par essai sans
+   départ trop tôt. Le temps n'est pas envoyé : seul le score part, comme partout. */
+var REFLEXE = { type: 'perso', max: 3, rendre: function(zone, fin, o){
+  var essais = [], pts = 0, etat = 'pret', minuteur = null, t0 = 0;
+  function sec(ms){ return (ms / 1000).toFixed(2).replace('.', ',') + ' s'; }
+  function dessiner(texte, classe){
+    zone.innerHTML = '<div class="reflexe"><p class="consigne">⚡ Touche le rond dès qu’il devient <b style="color:#30c26b">VERT</b>. <span class="compte">Essai ' + Math.min(3, essais.length + 1) + ' / 3</span></p>' +
+      '<button type="button" class="gros-rond ' + (classe || '') + '">' + texte + '</button>' +
+      '<ul class="essais">' + essais.map(function(e, k){ return '<li>' + (k + 1) + ' : ' + (e < 0 ? 'trop tôt 😅' : sec(e)) + '</li>'; }).join('') + '</ul></div>';
+    zone.querySelector('.gros-rond').addEventListener('pointerdown', toucher);
+  }
+  function lancer(){
+    etat = 'attends'; dessiner('Attends le vert…', 'attends');
+    minuteur = setTimeout(function(){ etat = 'vas-y'; t0 = performance.now(); dessiner('TOUCHE !', 'vas-y'); }, 1500 + Math.random() * 2500);
+  }
+  function suite(){
+    if(essais.length < 3){ setTimeout(lancer, 900); return; }
+    var bons = essais.filter(function(e){ return e >= 0; });
+    var moy = bons.length ? bons.reduce(function(a, b){ return a + b; }, 0) / bons.length : 0;
+    o.son.fin();
+    o.feuille(bons.length > 0, bons.length ? 'Ton temps moyen : ' + sec(moy) : 'Trop pressé ! Attends bien le vert.',
+      'Ton **œil** capte le vert (le stimulus). Un **message nerveux** va au **cerveau**, qui envoie un ordre aux **muscles** du doigt. Tout ça prend environ **0,2 seconde** : c’est le **temps de réaction**.',
+      function(){ fin(pts); });
+  }
+  function toucher(ev){
+    ev.preventDefault();
+    if(etat === 'pret'){ lancer(); return; }
+    if(etat === 'attends'){
+      clearTimeout(minuteur); etat = 'pause'; essais.push(-1); o.son.faux(); o.compter(false);
+      dessiner('Trop tôt ! 😅', ''); suite(); return;
+    }
+    if(etat === 'vas-y'){
+      var ms = performance.now() - t0; etat = 'pause';
+      /* Moins de 0,1 s : personne ne réagit aussi vite, on a deviné. */
+      if(ms < 100){ essais.push(-1); o.son.faux(); o.compter(false); dessiner('Tu as deviné ! 😅', ''); suite(); return; }
+      essais.push(ms); pts++; o.son.bon(); o.compter(true);
+      dessiner(sec(ms), 'vas-y'); suite();
+    }
+  }
+  dessiner('Touche pour commencer');
+} };
+
+Jeux.lancer({
+  devoir: 'nerveux-1',
+  titre: 'Mon système nerveux',
+  ic: '🧠',
+  duree: '15 min',
+  missions: [
+
+    /* ---------------------------------------------------------------- 1 */
+    { nom: 'Le temps de réaction', ic: '⚡', accroche: 'Teste tes réflexes !',
+      lecon: [
+        { titre: 'Un stimulus', visuel: { img: 'img/basket.webp', alt: 'Le basketteur voit le ballon et lève la main' },
+          texte: 'Un **stimulus** : un signal capté par le corps. Une lumière, un bruit, un ballon qui arrive…' },
+        { titre: 'Ce qui se passe', visuel: { ic: '👁️ ➜ 🧠 ➜ 💪' },
+          texte: 'L’**œil** capte le signal. Un **message nerveux** part vers le **cerveau**.\nLe cerveau envoie un **ordre** aux **muscles**.\nTout ça prend environ **0,2 seconde** : le **temps de réaction**.' }
+      ],
+      jeux: [
+        REFLEXE,
+        { type: 'ordre', consigne: 'La règle tombe, tu la rattrapes. Remets dans l’ordre.',
+          items: [{ ic: '📏', txt: 'La règle tombe : c’est le stimulus' }, { ic: '👁️', txt: 'L’œil capte le signal' },
+                  { ic: '⚡', txt: 'Un message nerveux va au cerveau' }, { ic: '🧠', txt: 'Le cerveau envoie un ordre' }, { ic: '✊', txt: 'Les muscles de la main se contractent' }] },
+        { type: 'qcm', q: 'En lisant un message au volant, le temps de réaction peut…', grille: true,
+          choix: [{ ic: '⏱️×2', txt: 'doubler' }, { ic: '⏱️÷2', txt: 'être divisé par 2' }], bon: 0,
+          explication: 'Le cerveau est occupé ailleurs : il réagit deux fois plus tard. La voiture roule plus longtemps avant de freiner.' }
+      ] },
+
+    /* ---------------------------------------------------------------- 2 */
+    { nom: 'Mes sens me trompent', ic: '🌀', accroche: 'L’organe ou le cerveau ?',
+      lecon: [
+        { titre: 'Capter, puis interpréter', visuel: { ic: '👁️ 👂 👃 👅 ✋' },
+          texte: 'L’**organe des sens** CAPTE : la lumière, les sons, les odeurs…\nLe **cerveau** INTERPRÈTE le message. Pour aller vite, il complète et devine.' },
+        { titre: 'L’illusion', visuel: { img: 'img/lapin-canard.webp', alt: 'Le dessin du lapin-canard' },
+          texte: 'Parfois le cerveau se trompe : c’est une **illusion**.\nCe que je perçois n’est pas toujours la **réalité**.' }
+      ],
+      jeux: [
+        { type: 'qcm', q: 'Sans mesurer : quel segment est le plus long ?', visuel: { svg: SEGMENTS, alt: 'Deux segments AB et BC', clair: true },
+          choix: ['[AB]', '[BC]', 'Ils sont pareils'], bon: 2, fixe: true, toujours: true,
+          explication: 'À la règle, [AB] et [BC] ont la **même longueur**. Ce sont les pointes qui trompent ton **cerveau**.' },
+        { type: 'qcm', q: 'Regarde la grille. Puis **fixe un seul croisement** blanc. Le point gris à cet endroit…', visuel: { svg: GRILLE, alt: 'Une grille de carrés noirs', clair: true },
+          choix: ['disparaît', 'devient plus gros', 'devient rouge'], bon: 0, fixe: true, toujours: true,
+          explication: 'Les points gris **n’existent pas** sur l’image : c’est ton **cerveau** qui les fabrique.' },
+        { type: 'tri', consigne: 'L’erreur vient de l’organe ou du cerveau ?',
+          bacs: [{ nom: 'De l’organe', ic: '👁️', couleur: ORGANE }, { nom: 'Du cerveau', ic: '🧠', couleur: CERVEAU }],
+          cartes: [
+            { txt: 'Deux pointes sur l’avant-bras : je n’en sens qu’une', ic: '📍', bac: 0, pourquoi: 'L’avant-bras a très peu de récepteurs du toucher.' },
+            { txt: 'Le point aveugle : le rond disparaît', ic: '⚫', bac: 0, pourquoi: 'Pas de récepteurs de la lumière à cet endroit de la rétine.' },
+            { txt: 'Les deux segments : l’un paraît plus long', ic: '📏', bac: 1, pourquoi: 'Ils ont la même longueur : le cerveau interprète mal.' },
+            { txt: 'Les points gris de la grille', ic: '🔲', bac: 1, pourquoi: 'Ils n’existent pas : le cerveau les fabrique.' },
+            { txt: 'Une oreille bouchée : je ne sais plus d’où vient le son', ic: '👂', bac: 0, pourquoi: 'L’oreille bouchée ne capte plus : il manque un message.' },
+            { txt: 'Nez pincé : je ne reconnais plus le parfum', ic: '👃', bac: 0, pourquoi: 'Les récepteurs du nez ne captent plus les odeurs.' },
+            { txt: 'Gobelet jaune : je crois boire du citron', ic: '🥤', bac: 1, pourquoi: 'La couleur guide le cerveau : il devine, et se trompe.' }
+          ] }
+      ] },
+
+    /* ---------------------------------------------------------------- 3 */
+    { nom: 'Le trajet du message', ic: '🛤️', accroche: 'Du récepteur au muscle.',
+      lecon: [
+        { titre: 'Toujours dans le même sens', visuel: { ic: '👁️ ➜ 〰️ ➜ 🧠 ➜ 〰️ ➜ 💪' },
+          texte: '**Récepteur** → **nerf sensitif** → **centre nerveux** → **nerf moteur** → **muscle**.\nLes centres nerveux : le **cerveau** et la **moelle épinière**.' },
+        { titre: 'Deux sortes de nerfs', visuel: { ic: '🖐️ 🦵' },
+          texte: 'Le nerf **sensitif** sert à **sentir** : il va du récepteur vers le centre nerveux.\nLe nerf **moteur** sert à **bouger** : il va du centre nerveux vers le muscle.' },
+        { titre: 'Neurone et synapse', visuel: { svg: NEURONE, alt: 'Un neurone, une synapse, un deuxième neurone', clair: true },
+          texte: 'Un **neurone** est une cellule très longue.\nEntre deux neurones : la **synapse**. Le message la traverse grâce aux **neurotransmetteurs**.' }
+      ],
+      jeux: [
+        { type: 'legende', consigne: 'Légende le schéma : touche le nom de la case qui clignote.',
+          visuel: { img: 'img/trajet.webp', alt: 'Œil, cerveau et moelle épinière, muscle : cinq cases vides', clair: true },
+          reperes: [{ x: 10.6, y: 82, bon: 'le récepteur' }, { x: 30.3, y: 82, bon: 'le nerf sensitif', haut: true },
+                    { x: 50, y: 82, bon: 'le centre nerveux' }, { x: 69.6, y: 82, bon: 'le nerf moteur', haut: true }, { x: 89.4, y: 82, bon: 'le muscle' }] },
+        { type: 'qcm', q: '**Nadia** sent sa jambe, mais ne peut plus la bouger. Quel nerf est touché ?', grille: true,
+          choix: [{ ic: '💪', txt: 'le nerf moteur' }, { ic: '🖐️', txt: 'le nerf sensitif' }], bon: 0, fixe: true,
+          explication: 'Elle ne peut plus BOUGER : c’est le nerf moteur, qui porte l’ordre vers le muscle.' },
+        { type: 'qcm', q: '**Karim** bouge ses doigts, mais ne sent plus sa main. Quel nerf est touché ?', grille: true,
+          choix: [{ ic: '💪', txt: 'le nerf moteur' }, { ic: '🖐️', txt: 'le nerf sensitif' }], bon: 1, fixe: true,
+          explication: 'Il ne SENT plus : c’est le nerf sensitif, qui porte le message du récepteur vers le centre nerveux.' },
+        { type: 'eclair', consigne: 'Vrai ou faux ? Vite !', secondes: 12, items: [
+          { q: 'Un neurone est une cellule.', vrai: true, explication: 'C’est la cellule du système nerveux, très longue.' },
+          { q: 'Dans la synapse, le message est électrique.', vrai: false, explication: 'Électrique le long du neurone, CHIMIQUE dans la synapse (les neurotransmetteurs).' },
+          { q: 'Le message nerveux va du muscle vers le récepteur.', vrai: false, explication: 'C’est l’inverse : du récepteur vers le muscle, toujours dans ce sens.' },
+          { q: 'La moelle épinière est un centre nerveux.', vrai: true, explication: 'Les centres nerveux : le cerveau et la moelle épinière.' }
+        ] }
+      ] }
+  ]
+});
+</script>
+</body>
+</html>

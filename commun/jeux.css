@@ -1,0 +1,164 @@
+/* L'allure des missions et des mini-jeux (commun/jeux.js). À charger APRÈS maison.css.
+   Téléphone d'abord : une colonne, des boutons d'au moins 56 px, peu de texte à l'écran. */
+
+.tete{display:flex;align-items:center;gap:10px}
+.retour{flex:1;color:var(--doux);font-weight:700;text-decoration:none;font-size:.95rem}
+.son-btn,.voix{background:var(--carte-2);border:1px solid var(--trait-fort);border-radius:999px;width:44px;height:44px;
+     display:inline-grid;place-items:center;font-size:1.2rem;flex:none;padding:0}
+.voix{width:38px;height:38px;font-size:1rem;margin-left:8px;vertical-align:middle}
+
+.titre-travail{display:flex;align-items:center;gap:14px}
+.titre-travail .ic{flex:none;width:64px;height:64px;border-radius:18px;background:var(--carte-2);display:grid;place-items:center;font-size:2.2rem}
+.titre-travail h1{font-size:1.6rem}
+.total{font-family:var(--titre);font-weight:600;color:var(--soleil);font-size:1.1rem}
+
+/* ---- La carte des missions ---- */
+.missions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.mission{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--carte);
+     border:2px solid var(--trait-fort);border-radius:18px;padding:12px 14px;min-height:72px}
+.mission:active{transform:scale(.98)}
+.mission.prochaine{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
+.mission.faite{border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
+.mission .num{flex:none;width:46px;height:46px;border-radius:14px;background:var(--carte-2);display:grid;place-items:center;font-size:1.5rem}
+.mission .corps{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mission .nom{font-family:var(--titre);font-weight:600;font-size:1.1rem;line-height:1.2}
+.mission .accroche{color:var(--doux);font-size:.88rem;line-height:1.3}
+.mission .go{flex:none;background:var(--accent);color:var(--accent-encre);font-weight:800;font-size:.85rem;border-radius:999px;padding:4px 10px}
+.bravo{text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+
+.etoiles{flex:none;display:inline-flex;gap:1px;font-size:1.15rem;color:#3a4253;letter-spacing:-1px}
+.etoiles .on{color:var(--soleil)}
+.etoiles.grand{font-size:3.4rem;gap:6px}
+.etoiles.grand span{display:inline-block;animation:etoile .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes etoile{from{transform:scale(0) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
+
+/* ---- En jeu ---- */
+.jeu-tete{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5;background:var(--fond);
+     padding:6px 0;margin-top:-6px}
+.quitter{flex:none;width:44px;height:44px;border-radius:999px;background:var(--carte-2);border:1px solid var(--trait-fort);font-size:1.1rem}
+.progres{flex:1;height:14px;border-radius:999px;background:var(--carte-2);overflow:hidden}
+.progres i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));border-radius:999px;transition:width .4s}
+.pts{flex:none;font-family:var(--titre);font-weight:600;color:var(--soleil);font-size:1.1rem;min-width:52px;text-align:right}
+.etiquette-mission{color:var(--accent);font-weight:800;font-size:.9rem;text-transform:uppercase;letter-spacing:.04em}
+
+.zone-jeu{display:flex;flex-direction:column;gap:14px;animation:entre .25s ease-out}
+@keyframes entre{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.question{font-size:1.35rem;line-height:1.3}
+.consigne{font-family:var(--titre);font-weight:600;font-size:1.15rem;line-height:1.3}
+.compte{color:var(--doux);font-family:var(--texte);font-size:.9rem;font-weight:800;white-space:nowrap}
+
+/* Les visuels : images des séances, schémas, emojis */
+.visuel{margin:0;border-radius:18px;overflow:hidden;background:var(--carte-2);display:grid;place-items:center}
+.visuel img,.visuel svg{display:block;width:100%;height:auto;max-height:42vh;object-fit:contain}
+.visuel.clair{background:#fff}
+.visuel.emoji{font-size:4.5rem;padding:14px 0;background:transparent}
+
+/* Les réponses */
+.choix{display:flex;flex-direction:column;gap:10px}
+.choix.grille{display:grid;grid-template-columns:1fr 1fr}
+.rep{justify-content:flex-start;gap:10px;text-align:left;border-radius:18px;min-height:60px;line-height:1.25;font-size:1.1rem}
+.choix.grille .rep{flex-direction:column;justify-content:center;text-align:center;min-height:96px}
+.rep .ic{font-size:1.7rem;line-height:1}
+.rep .mini{width:64px;height:48px;object-fit:contain;border-radius:10px;background:#fff;flex:none}
+.choix.grille .rep .mini{width:100%;height:auto;max-height:110px}
+.rep:disabled{opacity:1;cursor:default}
+.rep.bon,.bac.bon{background:var(--ok-fond)!important;border-color:var(--ok)!important;color:var(--ok)!important}
+.rep.faux,.bac.faux{background:var(--ko-fond)!important;border-color:var(--ko)!important;color:#ffd3d3!important}
+.rep.choisi{border-color:var(--soleil);box-shadow:0 0 0 3px color-mix(in srgb,var(--soleil) 35%,transparent)}
+.rep.indice{border-color:var(--soleil);animation:pulse 1s infinite}
+.vraifaux .rep{min-height:110px;font-size:1.3rem}
+
+.secoue{animation:secoue .4s}
+@keyframes secoue{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--soleil) 30%,transparent)}}
+
+/* Vrai/faux chronométré */
+.chrono{height:10px;border-radius:999px;background:var(--carte-2);overflow:hidden}
+.chrono i{display:block;height:100%;width:100%;background:var(--soleil);border-radius:999px}
+
+/* Tri */
+.carte-tri{background:var(--carte);border:2px solid var(--trait-fort);border-radius:22px;padding:18px;min-height:150px;
+     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;transition:transform .45s,opacity .45s}
+.carte-tri img{max-width:100%;max-height:24vh;border-radius:14px;background:#fff}
+.carte-tri .ic{font-size:3.4rem;line-height:1}
+.carte-tri .txt{font-family:var(--titre);font-weight:600;font-size:1.3rem;line-height:1.25}
+.carte-tri.range{transform:translateY(120px) scale(.4);opacity:0}
+.bacs{display:grid;gap:10px}
+.bacs.b2{grid-template-columns:1fr 1fr}
+.bacs.b3{grid-template-columns:1fr 1fr 1fr}
+.bacs.b4{grid-template-columns:1fr 1fr}
+.bac{position:relative;min-height:104px;border-radius:18px;border:3px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--carte));
+     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;font-family:var(--titre);font-weight:600;font-size:1rem;line-height:1.15}
+.bac:active{transform:scale(.96)}
+.bac .ic{font-size:1.8rem}
+.bac .nb{position:absolute;top:6px;right:8px;font-size:.8rem;color:var(--doux);font-family:var(--texte);font-weight:800}
+
+/* Ordre */
+.cases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.case{display:flex;align-items:center;gap:10px;border:2px dashed var(--trait-fort);border-radius:14px;padding:8px 10px;min-height:48px}
+.case .num{flex:none;width:30px;height:30px;border-radius:999px;background:var(--carte-2);display:grid;place-items:center;font-weight:800}
+.case .vide{color:var(--doux)}
+.case .txt{display:flex;align-items:center;gap:8px;font-weight:700;line-height:1.25}
+.case .txt .ic{font-size:1.3rem}
+.case.remplie{border-style:solid;animation:entre .25s}
+.case.ok{border-color:var(--ok);background:var(--ok-fond)}
+.case.aide{border-color:var(--soleil)}
+.case.ok .num{background:var(--ok);color:var(--ok-fond)}
+.tas{display:flex;flex-direction:column;gap:8px}
+
+/* Paires */
+.paires{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.paires .col{display:flex;flex-direction:column;gap:8px}
+.paires .rep{font-size:1rem;min-height:64px;padding:8px 12px;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
+.paires .rep .mini{width:100%;height:56px}
+.col-titre{color:var(--doux);font-weight:800;font-size:.85rem;text-align:center;text-transform:uppercase}
+
+/* Légende */
+.schema{position:relative;margin-bottom:18px}
+.repere{position:absolute;transform:translate(-50%,-50%);min-width:32px;height:32px;border-radius:999px;background:#2b3448;color:#fff;
+     border:3px solid #fff;display:grid;place-items:center;font-weight:800;font-size:.95rem;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.repere.actif{background:var(--soleil);color:#000;animation:pulse 1s infinite;z-index:2}
+.repere.trouve{background:var(--ok);color:#06220f}
+.repere .bulle{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;background:rgba(10,14,20,.88);color:#fff;
+     font-size:.72rem;font-weight:800;border-radius:8px;padding:2px 6px;white-space:nowrap;pointer-events:none}
+.repere.haut .bulle{top:auto;bottom:100%;margin:0 0 3px}
+.noms{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.noms .rep{justify-content:center;text-align:center;font-size:1rem;min-height:56px;padding:8px}
+
+/* Leçon */
+.lecon{display:flex;flex-direction:column;gap:12px}
+.lecon h2{font-size:1.45rem}
+.lecon-texte{font-size:1.15rem;line-height:1.5}
+.lecon .voix{align-self:flex-start;margin-left:0}
+.points-lecon{display:flex;justify-content:center;gap:8px}
+.points-lecon i{width:10px;height:10px;border-radius:999px;background:var(--carte-2)}
+.points-lecon i.on{background:var(--accent)}
+.bas{display:flex;flex-direction:column;gap:4px;margin-top:auto}
+
+/* Fin de mission */
+.fin-mission{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.fin-mission h1{font-size:2rem}
+.score-fin{color:var(--doux);font-weight:700}
+
+/* Le panneau du bas, après une réponse */
+.feuille{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;background:rgba(0,0,0,0);transition:background .2s}
+.feuille.ouverte{background:rgba(0,0,0,.45)}
+.feuille-in{width:100%;max-width:520px;margin:0 auto;background:var(--carte);border-top:4px solid var(--ko);border-radius:24px 24px 0 0;
+     padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;
+     transform:translateY(100%);transition:transform .25s ease-out}
+.feuille.bon .feuille-in{border-top-color:var(--ok)}
+.feuille.ouverte .feuille-in{transform:none}
+.feuille-titre{font-family:var(--titre);font-weight:600;font-size:1.3rem}
+.feuille-texte{font-size:1.08rem;line-height:1.45;color:var(--encre)}
+
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:30;background:var(--soleil);color:#2a1d00;
+     font-family:var(--titre);font-weight:600;font-size:1.2rem;border-radius:999px;padding:8px 18px;animation:toast 1.6s both}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-10px) scale(.8)}15%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+
+.confettis{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.confettis i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:tombe linear both}
+@keyframes tombe{to{top:105%;transform:rotate(720deg) translateX(40px)}}
+
+/* Un gros bouton d'action, pour les jeux « perso » */
+.gros-rond{width:min(70vw,260px);aspect-ratio:1;border-radius:999px;align-self:center;border:none;font-family:var(--titre);
+     font-weight:600;font-size:1.5rem;color:#08131a;background:var(--accent)}

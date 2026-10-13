@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="robots" content="noindex, nofollow">
+<title>L’IA en rappel</title>
+<!-- Travail « ia-1 » — Technologie 4e.
+     Rappel de la séquence 1 « Autour de l'intelligence artificielle », séances 1 et 2 :
+     IA classique / IA générative / LLM (leçons 1A, 1B), apprendre avec des exemples
+     (leçon 2A). Les cartes du tri sont celles de l'annexe 1 (les 16 cartes-exemples) ;
+     les 5 étapes sont celles de l'annexe 2 ; le bleu et le rouge reprennent le document
+     « L'IA classique VS l'IA générative ». -->
+<link rel="stylesheet" href="../commun/maison.css">
+<link rel="stylesheet" href="../commun/jeux.css">
+<style>
+  .familles{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;width:100%;background:#fff}
+  .familles div{border-radius:12px;padding:10px;border:3px solid;font-size:.9rem;line-height:1.35;color:#222}
+  .familles h3{margin:0 0 6px;font-family:var(--titre);font-size:1.05rem;line-height:1.15}
+  .familles .cl{border-color:#2a7ab8;background:#eaf3fa}.familles .cl h3{color:#2a7ab8}
+  .familles .ge{border-color:#c8382f;background:#fbeceb}.familles .ge h3{color:#c8382f}
+  .familles ul{margin:0;padding-left:16px}
+  .phrase{background:#fff;color:#222;border-radius:18px;padding:16px;font-size:1.3rem;font-weight:700;line-height:1.4;width:100%}
+  .phrase .trou{display:inline-block;min-width:70px;border-bottom:3px dashed #8a3a55;color:#8a3a55}
+</style>
+</head>
+<body>
+<main class="ecran" id="ecran"></main>
+
+<script src="../config.js"></script>
+<script src="../commun/maison.js"></script>
+<script src="../commun/jeux.js"></script>
+<script>
+'use strict';
+
+var PAS_IA = '#9aa6b8', CLASSIQUE = '#2a7ab8', GENERATIVE = '#c8382f';
+
+/* « Sois le LLM » : la phrase, le mot le plus probable, et les pourcentages qu'un modèle
+   donnerait (inventés mais vraisemblables) — c'est ce calcul qu'on montre après. */
+function motSuivant(debut, mots, pourcents){
+  return { type: 'qcm', q: 'Tu es le LLM. Quel mot vient le plus probablement après ?',
+    visuel: { html: '<p class="phrase">« ' + debut + ' <span class="trou">?</span> »</p>' },
+    choix: mots, bon: 0, toujours: true,
+    explication: 'Le LLM calcule : ' + mots.map(function(m, k){ return '« ' + m + ' » ' + pourcents[k] + ' %'; }).join(', ') +
+      '. Il choisit le mot le plus probable… sans comprendre la phrase.' };
+}
+
+Jeux.lancer({
+  devoir: 'ia-1',
+  titre: 'L’IA en rappel',
+  ic: '🤖',
+  duree: '12 min',
+  missions: [
+
+    /* ---------------------------------------------------------------- 1 */
+    { nom: 'IA ou pas IA ?', ic: '🗂️', accroche: 'Classique ou générative ?',
+      lecon: [
+        { titre: 'Une intelligence artificielle', visuel: { ic: '🤖' },
+          texte: 'Une IA est un programme qui **décide tout seul**.\nOn ne lui a pas donné la règle : elle l’a **apprise**.\nUne calculatrice n’est pas une IA : elle suit une règle fixe.' },
+        { titre: 'Deux grandes familles', visuel: { html: '<div class="familles">' +
+            '<div class="cl"><h3>IA classique</h3><ul><li>elle <b>trie</b>, classe, reconnaît</li><li>une seule bonne réponse</li><li>depuis 1950</li></ul></div>' +
+            '<div class="ge"><h3>IA générative</h3><ul><li>elle <b>invente</b> : texte, image, son</li><li>plusieurs réponses possibles</li><li>ChatGPT : 2022</li></ul></div></div>' },
+          texte: 'Est-ce que la machine **invente** quelque chose de nouveau ?\nOui : IA **générative**. Non, elle trie ou reconnaît : IA **classique**.' }
+      ],
+      jeux: [
+        { type: 'tri', consigne: 'Dans quel tas ?',
+          bacs: [{ nom: 'Pas une IA', ic: '🧮', couleur: PAS_IA }, { nom: 'IA classique', ic: '🔎', couleur: CLASSIQUE }, { nom: 'IA générative', ic: '✨', couleur: GENERATIVE }],
+          cartes: [
+            { txt: 'Une calculatrice fait une addition', ic: '🧮', bac: 0, pourquoi: 'Elle suit une règle fixe : elle ne décide rien toute seule.' },
+            { txt: 'Une télécommande allume la télévision', ic: '📺', bac: 0, pourquoi: 'Elle fait seulement ce qu’on lui demande.' },
+            { txt: 'Un feu tricolore change toutes les 40 secondes', ic: '🚦', bac: 0, pourquoi: 'Il suit une règle fixe : 40 secondes, toujours.' },
+            { txt: 'Un distributeur rend la monnaie', ic: '🪙', bac: 0, pourquoi: 'C’est un calcul fixe, pas une décision apprise.' },
+            { txt: 'Un téléphone reconnaît un visage', ic: '🔓', bac: 1, pourquoi: 'Elle reconnaît : c’est une IA classique.' },
+            { txt: 'Un radar lit une plaque d’immatriculation', ic: '🚗', bac: 1, pourquoi: 'Elle reconnaît des lettres : IA classique.' },
+            { txt: 'La boîte mail met les publicités de côté', ic: '📧', bac: 1, pourquoi: 'Elle trie : IA classique.' },
+            { txt: 'Un site te propose la vidéo suivante', ic: '▶️', bac: 1, pourquoi: 'Elle choisit dans ce qui existe déjà : IA classique.' },
+            { txt: 'Une machine écrit une histoire inventée', ic: '📖', bac: 2, pourquoi: 'Elle invente un texte nouveau : IA générative.' },
+            { txt: 'Une machine crée une image jamais vue', ic: '🎨', bac: 2, pourquoi: 'Elle invente une image : IA générative.' },
+            { txt: 'Une machine compose une musique', ic: '🎵', bac: 2, pourquoi: 'Elle invente un son nouveau : IA générative.' },
+            { txt: 'Une application vieillit ton visage sur une photo', ic: '👴', bac: 2, pourquoi: 'Elle fabrique une image qui n’existait pas : IA générative.' }
+          ] }
+      ] },
+
+    /* ---------------------------------------------------------------- 2 */
+    { nom: 'Sois le LLM !', ic: '💬', accroche: 'Devine le mot suivant.',
+      lecon: [
+        { titre: 'Le LLM', visuel: { html: '<p class="phrase">« Il était une <span class="trou">fois</span> »</p>' },
+          texte: 'LLM veut dire **grand modèle de langage**.\nC’est une IA générative entraînée avec des **milliards de textes**.\nElle devine le mot **le plus probable** après les autres.' },
+        { titre: 'Il ne comprend pas', visuel: { ic: '🧮💬' },
+          texte: 'Le LLM ne comprend pas ce qu’il dit : il **calcule**.\nÀ toi d’être le LLM !' }
+      ],
+      jeux: [
+        motSuivant('Le chat boit du', ['lait', 'soleil', 'vélo'], [81, 2, 1]),
+        motSuivant('Je me brosse les', ['dents', 'nuages', 'chaises'], [93, 1, 1]),
+        motSuivant('Joyeux', ['anniversaire', 'parapluie', 'tracteur'], [88, 1, 1]),
+        { type: 'eclair', consigne: 'Vrai ou faux ? Vite !', secondes: 12, items: [
+          { q: 'Un LLM comprend le sens des phrases qu’il écrit.', vrai: false, explication: 'Il ne comprend pas : il calcule le mot le plus probable.' },
+          { q: 'L’intelligence artificielle a été inventée en 2022.', vrai: false, explication: 'L’IA classique existe depuis les années 1950. C’est ChatGPT qui est arrivé en 2022.' },
+          { q: 'Une IA générative peut donner deux réponses différentes à la même question.', vrai: true, explication: 'Elle invente une réponse nouvelle à chaque fois.' },
+          { q: 'ChatGPT est un LLM.', vrai: true, explication: 'C’est une IA générative entraînée sur énormément de textes.' }
+        ] }
+      ] },
+
+    /* ---------------------------------------------------------------- 3 */
+    { nom: 'Comment une IA apprend', ic: '🐶', accroche: 'Données, étiquettes, entraînement.',
+      lecon: [
+        { titre: 'Avec des exemples', visuel: { ic: '🐕 🐩 🦮 🐕‍🦺' },
+          texte: 'Un enfant reconnaît un chien parce qu’il en a vu **beaucoup**.\nUne IA aussi : on lui montre **beaucoup d’exemples**, au lieu de lui donner des règles.' },
+        { titre: 'Les trois mots', visuel: { ic: '🖼️ 🏷️ 🗂️' },
+          texte: 'Une **donnée** : un exemple, ici une photo.\nUne **étiquette** : le mot qui dit ce qu’elle montre. C’est l’humain qui l’écrit.\nLe **jeu de données** : tous les exemples rangés ensemble.' },
+        { titre: 'Plus d’exemples, moins d’erreurs', visuel: { ic: '📈' },
+          texte: 'Avec **peu** d’exemples, l’IA se trompe souvent.\nOn la **teste** toujours avec des exemples qu’elle n’a **jamais vus**.' }
+      ],
+      jeux: [
+        { type: 'ordre', consigne: 'Remets les 5 étapes de l’entraînement dans l’ordre.',
+          items: [{ ic: '🗂️', txt: 'On rassemble beaucoup d’exemples' }, { ic: '🏷️', txt: 'On met une étiquette sur chaque exemple' },
+                  { ic: '⚙️', txt: 'On lance l’entraînement' }, { ic: '🧪', txt: 'On teste avec des exemples jamais vus' },
+                  { ic: '🔧', txt: 'On corrige : on ajoute des exemples' }] },
+        { type: 'tri', consigne: 'Donnée, étiquette ou jeu de données ?',
+          bacs: [{ nom: 'Donnée', ic: '🖼️', couleur: '#4dd0e1' }, { nom: 'Étiquette', ic: '🏷️', couleur: '#ffd166' }, { nom: 'Jeu de données', ic: '🗂️', couleur: '#a78bfa' }],
+          cartes: [
+            { txt: 'Une photo de feuille prise dans la cour', ic: '🍃', bac: 0, pourquoi: 'Un exemple donné à la machine : une donnée.' },
+            { txt: 'Le mot « trèfle » écrit sur le dossier', ic: '🏷️', bac: 1, pourquoi: 'Le mot qui dit ce que montre la photo : une étiquette.' },
+            { txt: 'Les 60 photos de feuilles rangées ensemble', ic: '🗂️', bac: 2, pourquoi: 'Tous les exemples rangés : le jeu de données.' },
+            { txt: 'Une photo de chien', ic: '🐕', bac: 0, pourquoi: 'Un exemple : une donnée.' },
+            { txt: 'Le mot « chien »', ic: '🔤', bac: 1, pourquoi: 'Le mot qui dit ce que c’est : une étiquette.' }
+          ] },
+        { type: 'qcm', q: 'Qui écrit les étiquettes ?', grille: true,
+          choix: [{ ic: '🧑', txt: 'L’être humain' }, { ic: '🤖', txt: 'La machine' }], bon: 0,
+          explication: 'C’est l’humain : il dit à la machine ce que montre chaque exemple.' },
+        { type: 'qcm', q: 'Pourquoi teste-t-on l’IA avec des images qu’elle n’a **jamais vues** ?',
+          choix: ['Pour savoir si elle reconnaît du nouveau', 'Pour qu’elle aille plus vite', 'Pour lui faire peur'], bon: 0,
+          explication: 'Sinon, on vérifie seulement qu’elle a appris ses exemples par cœur.' }
+      ] }
+  ]
+});
+</script>
+</body>
+</html>

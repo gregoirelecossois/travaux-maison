@@ -95,6 +95,20 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   if (url.pathname.startsWith('/api/')) return api(req, res, url);
   if (url.pathname === '/__etat') return json(res, 200, [...passages.values()]);
+  /* Outil de préparation des images (outils/images.js) : la page envoie une image en
+     « data URL », on l'écrit DANS ce dépôt, en webp, png ou jpg seulement. */
+  if (url.pathname === '/__image' && req.method === 'POST') {
+    const vers = path.join(RACINE, String(url.searchParams.get('vers') || ''));
+    if (!vers.startsWith(RACINE + path.sep) || !/\.(webp|png|jpg)$/.test(vers)) return json(res, 400, { erreur: 'Chemin refusé.' });
+    let t = ''; req.setEncoding('utf8');
+    req.on('data', (m) => { t += m; });
+    req.on('end', () => {
+      fs.mkdirSync(path.dirname(vers), { recursive: true });
+      fs.writeFileSync(vers, Buffer.from(t.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
+      json(res, 200, { ok: true, octets: fs.statSync(vers).size });
+    });
+    return;
+  }
   if (url.pathname === '/config.js') {
     res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
     return res.end(`window.ATELIER_CONFIG = { api: 'http://localhost:${PORT}' };\n`);
