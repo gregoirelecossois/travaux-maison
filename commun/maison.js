@@ -20,6 +20,7 @@
  *                      MEILLEUR essai : refaire une étape ne fait jamais baisser le score.
  *   suivi.etapesFaites(), suivi.scoreTotal()
  *   suivi.envoi        'entrainement' | 'attente' | 'envoye' | 'refuse'
+ *   suivi.prof         true : le professeur essaie la page (« ?prof=1 ») — voir plus bas.
  *   suivi.surChangement(fn)    rappelé à chaque changement de scores ou d'envoi.
  *
  * Ce que fait ce fichier, pour que chaque page n'ait pas à le refaire :
@@ -30,6 +31,11 @@
  *    perdu (tunnel, mode avion) n'a aucune conséquence : le suivant le remplace, et un
  *    envoi en attente repart dès que le réseau revient ou que l'élève rouvre la page ;
  *  - il écrit l'avancée dans maison_avancees_v1, pour la tuile de la page d'entrée.
+ *
+ * MODE PROFESSEUR (« ?prof=1 » dans l'adresse, posé par l'entrée en mode professeur et
+ * par le bouton « Essayer » de la page de suivi) : l'élève est « Prof », rien ne part au
+ * serveur et rien n'est gardé sur l'appareil — ni l'élève éventuellement rangé là, ni
+ * son avancée ne sont touchés. Recharger la page, c'est tout recommencer.
  *
  * C'est la version sans outil de src/maison/suivi.ts du dépôt le-pc : les deux disent la
  * même chose au serveur, de la même façon.
@@ -54,17 +60,20 @@
   }
 
   /* ---- L'élève, tel que la page d'entrée l'a rangé ---- */
-  var e = lire(CLE_ELEVE);
-  var eleve = e && typeof e.prenom === 'string' && PRENOM_OK.test(e.prenom) && typeof e.classe === 'string' && e.classe
+  var PROF = new URLSearchParams(location.search).has('prof');
+  var e = PROF ? null : lire(CLE_ELEVE);
+  var eleve = PROF ? { prenom: 'Prof', classe: '', compte: null, nom: '', appareil: '' }
+    : e && typeof e.prenom === 'string' && PRENOM_OK.test(e.prenom) && typeof e.classe === 'string' && e.classe
     ? { prenom: e.prenom, classe: e.classe,
         compte: Number.isInteger(e.compte) && e.compte > 0 ? e.compte : null,
         nom: typeof e.nom === 'string' ? e.nom : '',
         appareil: /^[A-Za-z0-9-]{16,64}$/.test(String(e.appareil || '')) ? String(e.appareil) : '' }
     : null;
   var CODE = ((new URLSearchParams(location.search).get('c') || '').trim() || (e && e.code) || '').toLowerCase();
-  var SUIVI = !!API && /^[a-z0-9]{6,16}$/.test(CODE);
+  var SUIVI = !PROF && !!API && /^[a-z0-9]{6,16}$/.test(CODE);
   /* La page d'entrée : celle que l'élève a ouverte, sinon la racine de ce dépôt. */
-  var ENTREE = e && memeOrigine(String(e.entree || '')) ? String(e.entree)
+  var ENTREE = PROF ? new URL('../?prof=1', document.currentScript ? document.currentScript.src : location.href).href
+    : e && memeOrigine(String(e.entree || '')) ? String(e.entree)
     : new URL('../', document.currentScript ? document.currentScript.src : location.href).href;
   if(CODE && ENTREE.indexOf('?') < 0) ENTREE += '?c=' + encodeURIComponent(CODE);
 
@@ -81,7 +90,7 @@
     /* Si quelqu'un d'autre s'est déclaré sur la page d'entrée depuis (« Ce n'est pas
        toi ? »), l'avancée gardée ici n'est pas la sienne : il repart de zéro, et la
        ligne du précédent reste chez le professeur. */
-    var g = lire(cle), etat;
+    var g = PROF ? null : lire(cle), etat;
     if(eleve && g && typeof g.id === 'string' && Array.isArray(g.scores) && memeEleve(g, eleve)){
       etat = { id: g.id, scores: vide().map(function(_, i){ return Number.isFinite(g.scores[i]) ? Number(g.scores[i]) : -1; }) };
     } else {
@@ -92,6 +101,7 @@
     var suivi = {
       eleve: eleve ? { prenom: eleve.prenom, classe: eleve.classe, compte: eleve.compte, nom: eleve.nom } : null,
       actif: SUIVI && !!eleve,
+      prof: PROF,
       entree: ENTREE,
       scores: etat.scores,
       envoi: SUIVI && eleve ? 'attente' : 'entrainement',
@@ -110,7 +120,7 @@
     function changer(){ suivi.scores = etat.scores; ecouteurs.forEach(function(fn){ try{ fn(suivi); }catch(x){} }); }
 
     function persister(){
-      if(!eleve) return;
+      if(!eleve || PROF) return;
       ecrire(cle, { id: etat.id, prenom: eleve.prenom, classe: eleve.classe, scores: etat.scores });
       /* Pour la tuile de la page d'entrée : où j'en suis, en quatre nombres. */
       var a = lire(CLE_AVANCEES) || {};

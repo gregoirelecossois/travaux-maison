@@ -76,7 +76,7 @@ function accueil(){
       '<a class="btn primaire geant" href="' + esc(suivi.entree) + '">Mes révisions →</a></div>';
     return;
   }
-  var envoi = { entrainement: 'Mode entraînement : ton professeur ne verra pas ce travail.',
+  var envoi = suivi.prof ? 'Mode professeur : rien n’est envoyé, rien n’est gardé.' : { entrainement: 'Mode entraînement : ton professeur ne verra pas ce travail.',
                 attente: 'Ton travail partira vers ton professeur dès que le réseau sera là.',
                 refuse: '⚠ Ce lien ne marche plus. Demande le nouveau lien à ton professeur.' }[suivi.envoi];
   $('#ecran').innerHTML =
