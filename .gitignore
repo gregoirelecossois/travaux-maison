@@ -1,0 +1,7 @@
+# Réglages Claude Code propres à ce poste (chemins absolus des dépôts voisins)
+.claude/settings.local.json
+# Serveur d'essai local
+outils/*.log
+node_modules/
+.DS_Store
+Thumbs.db

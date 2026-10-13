@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="robots" content="noindex, nofollow">
+<title>À la maison</title>
+
+<!-- LA PAGE D'ENTRÉE DES ÉLÈVES pour le travail à la maison, la même toute l'année :
+         https://gregoirelecossois.github.io/travaux-maison/?c=CODE
+     (le lien affiché par atelier-informatique/travail-maison.html ; l'ancienne adresse
+     atelier-informatique/maison.html?c=CODE renvoie ici).
+
+     1. Qui es-tu ?   L'élève écrit son prénom et touche sa classe, UNE fois.
+     2. C'est toi ?   Si des comptes de l'Atelier portent ce prénom dans cette classe, la
+                      page demande « Es-tu bien Léa M. ? » (POST /api/devoir/qui). Oui : le
+                      compte est retenu, ses devoirs se rangent sous lui, et on retrouve son
+                      avancée même sur un autre téléphone. Non, ou personne : il continue
+                      sous le prénom tapé, et l'enseignant le reliera dans le suivi.
+     3. Ses devoirs   Une tuile par travail de catalogue.js prévu pour sa classe, rangée
+                      dans « À faire » ou « Déjà fait ». Tout est fait : bravo, il est à
+                      jour — et peut quand même rouvrir un travail pour le refaire.
+
+     Un élève déjà inscrit sur ce téléphone AVANT que la question 2 n'existe se la voit
+     poser une fois, à sa visite suivante.
+
+     PAS DE COMPTE, PAS DE SESSION, PAS DE MOT DE PASSE. Cette page range qui est l'élève
+     dans le navigateur du téléphone, et chaque page de travail, qui vit sur le même
+     domaine (gregoirelecossois.github.io), le relit là. Les clés partagées :
+
+       maison_eleve_v1     { appareil, prenom, classe, code, entree, compte, nom, verifie }
+                           appareil = tiré au hasard une fois, le même pour tous les
+                             travaux faits sur ce téléphone ;
+                           compte   = le compte de l'Atelier qu'il a dit être le sien
+                             (null : aucun), nom = « Léa M. » pour l'afficher ;
+                           verifie  = la question 2 a eu sa réponse (oui, non, ou personne
+                             à proposer) : on ne la repose pas.
+                           ⚠ `prenom` reste celui qu'il a TAPÉ, même après « C'est moi » :
+                             les pages de travail s'en servent pour reconnaître l'élève
+                             qu'elles ont déjà vu, et repartiraient de zéro s'il changeait.
+       maison_avancees_v1  { <id du travail> : { etape, etapes, score, max } }
+                           écrit par chaque page de travail ; complété ici par ce que le
+                           serveur sait du compte (POST /api/devoir/avancees).
+       maison_appareil_v1  l'identifiant du téléphone, seul : il survit à « Ce n'est pas
+                           toi ? », puisque c'est toujours le même téléphone.
+       maison_attributions_v1  à quelles classes va chaque travail, tel que le serveur l'a
+                           dit à la dernière visite.
+
+     Ce qui part d'ici vers le serveur : le prénom tapé et la classe (pour la question 2),
+     et le compte choisi (pour l'avancée). Rien n'est enregistré par ces deux routes : seule
+     une page de travail écrit une ligne (POST /api/devoir/passage). -->
+
+<link rel="stylesheet" href="commun/maison.css">
+
+<style>
+  /* ---- 1. Qui es-tu ? ---- */
+  .accueil{justify-content:center;text-align:center}
+  .maisonnette{font-size:4.2rem;line-height:1;margin-bottom:2px;animation:flotte 3.2s ease-in-out infinite}
+  @keyframes flotte{50%{transform:translateY(-6px)}}
+  .accueil h1{font-size:2.3rem}
+  .accueil h1 span{display:block;color:var(--accent)}
+  .fiche{display:flex;flex-direction:column;gap:8px;text-align:left;margin-top:6px}
+  .fiche label,.fiche .label{font-family:var(--titre);font-weight:600;font-size:1.05rem;margin-top:6px}
+  .fiche input{width:100%;min-height:56px;padding:10px 16px;border-radius:14px;border:2px solid var(--trait-fort);
+         background:var(--fond);font-size:1.2rem;font-weight:700}
+  .fiche input::placeholder{color:#6f7b8d;font-weight:600}
+  .fiche input:focus{border-color:var(--accent);outline:none}
+  .fiche .btn.geant{margin-top:8px}
+  .classes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .classe{min-height:60px;border-radius:14px;border:2px solid var(--trait-fort);background:var(--fond);
+          font-family:var(--titre);font-weight:600;font-size:1.1rem}
+  .classe.on{background:var(--accent);border-color:var(--accent);color:var(--accent-encre)}
+  .erreur{color:var(--ko);font-weight:700;font-size:.95rem}
+
+  /* ---- 2. C'est toi ? ---- */
+  .question{justify-content:center;text-align:center}
+  .question .grand{font-size:4rem;line-height:1}
+  .question h1{font-size:2rem}
+  .question h1 strong{color:var(--accent);font-weight:600}
+  .question .choix{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .attente{justify-content:center;align-items:center;text-align:center;color:var(--doux);font-weight:700}
+  .attente .grand{font-size:3rem;animation:flotte 1.6s ease-in-out infinite}
+
+  /* ---- 3. Ses devoirs ---- */
+  .tete{display:flex;align-items:center;gap:12px;margin-top:4px}
+  .tete .salut{flex:1;min-width:0}
+  .tete h1{font-size:1.75rem;overflow-wrap:anywhere}
+  .puce-classe{flex:none;font-family:var(--titre);font-weight:600;font-size:1.15rem;color:var(--accent-encre);
+       background:var(--accent);border-radius:14px;padding:8px 14px}
+
+  .bravo{text-align:center;border:2px solid color-mix(in srgb,var(--ok) 60%,transparent);
+       background:linear-gradient(180deg,var(--ok-fond),var(--carte));animation:arrive .4s ease-out both}
+  .bravo .grand{font-size:3.4rem;line-height:1;display:block;margin-bottom:6px}
+  .bravo h2{font-size:1.6rem;color:var(--ok)}
+  .bravo p{margin-top:6px;font-weight:700}
+
+  .groupe{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .groupe h2{font-size:1.25rem;display:flex;align-items:center;gap:8px}
+  .groupe h2 .nb{font-size:.95rem;border-radius:999px;padding:1px 10px;background:var(--soleil);color:#2a2000}
+  .groupe.faits h2 .nb{background:var(--ok-fond);color:var(--ok)}
+  .groupe .aide{color:var(--doux);font-size:.9rem;font-weight:700;margin-top:-4px}
+
+  .tuiles{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+  .tuile{display:flex;gap:14px;align-items:center;width:100%;text-align:left;text-decoration:none;color:inherit;
+       background:var(--carte);border:2px solid var(--trait-fort);border-radius:22px;padding:16px;
+       transition:transform .08s,border-color .15s;animation:arrive .35s ease-out both}
+  .tuile:active{transform:scale(.98)}
+  .tuile.nouveau{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
+  .tuile.encours{border-color:var(--soleil)}
+  .tuile.fini{border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--carte) 70%,var(--fond))}
+  @keyframes arrive{from{opacity:0;transform:translateY(8px)}}
+  .tuile .ic{flex:none;width:64px;height:64px;border-radius:18px;background:var(--carte-2);display:grid;place-items:center;font-size:2.2rem}
+  .tuile.fini .ic{width:52px;height:52px;font-size:1.8rem}
+  .tuile .corps{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .tuile .titre{font-family:var(--titre);font-weight:600;font-size:1.25rem;line-height:1.2}
+  .tuile .meta{color:var(--doux);font-size:.85rem;font-weight:700}
+  .tuile .resume{color:var(--doux);font-size:.92rem;line-height:1.35}
+  .tuile .etat{display:flex;align-items:center;gap:8px;margin-top:6px;font-weight:800;font-size:.9rem}
+  .tuile .barre{flex:1;height:10px;border-radius:999px;background:var(--carte-2);overflow:hidden}
+  .tuile .barre i{display:block;height:100%;background:var(--soleil);border-radius:999px}
+  .tuile.fini .barre i{background:var(--ok)}
+  .etiquette{font-family:var(--titre);font-weight:600;font-size:.85rem;border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .etiquette.nouveau{background:var(--accent);color:var(--accent-encre)}
+  .etiquette.fini{background:var(--ok-fond);color:var(--ok)}
+  .tuile .fleche{flex:none;font-size:1.5rem;color:var(--doux)}
+  .tuile.fini .fleche{font-size:1.1rem}
+
+  .rien{text-align:center;color:var(--doux);font-weight:700;background:var(--carte);border:2px dashed var(--trait-fort);
+       border-radius:22px;padding:30px 20px;line-height:1.5}
+  .rien .ic{font-size:2.6rem;display:block;margin-bottom:6px}
+
+  .pied{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px}
+  .confirme{background:var(--carte);border:1px solid var(--trait);border-radius:18px;padding:14px;text-align:center;width:100%}
+  .confirme p{margin-bottom:10px;font-weight:700}
+  .deux-btn{display:flex;gap:8px}
+  .deux-btn .btn{flex:1;min-height:50px;font-size:1rem}
+</style>
+</head>
+<body>
+
+<!-- 0. Un instant — la question 2 pour un élève déjà inscrit, le temps que le serveur réponde. -->
+<main class="ecran attente" id="ecranAttente">
+  <span class="grand" aria-hidden="true">🏠</span>
+  <p>Un instant…</p>
+</main>
+
+<!-- 1. Qui es-tu ? — la seule fois où l'élève écrit quelque chose. -->
+<main class="ecran accueil" id="ecranAccueil" hidden>
+  <div class="maisonnette" aria-hidden="true">🏠</div>
+  <h1>Mes révisions <span>à la maison</span></h1>
+  <p class="soustitre">Sur ton téléphone, toute l'année</p>
+
+  <form class="fiche carte" id="formulaire" novalidate>
+    <label for="prenom">Ton prénom</label>
+    <input id="prenom" name="prenom" autocomplete="given-name" autocapitalize="words" autocorrect="off"
+           spellcheck="false" maxlength="24" enterkeyhint="done" placeholder="Écris ton prénom">
+    <p class="erreur" id="errPrenom" hidden>Écris ton prénom avec des lettres seulement.</p>
+
+    <span class="label" id="l-classe">Ta classe</span>
+    <div class="classes" role="radiogroup" aria-labelledby="l-classe" id="classes"></div>
+    <p class="erreur" id="errClasse" hidden>Choisis ta classe.</p>
+
+    <button type="submit" class="btn primaire geant pale" id="bPartir">C'est parti ! →</button>
+  </form>
+
+  <p class="mention" id="mention"></p>
+</main>
+
+<!-- 2. C'est toi ? — seulement si un compte de l'Atelier porte ce prénom dans cette classe. -->
+<main class="ecran question" id="ecranQui" hidden>
+  <span class="grand" aria-hidden="true">🙋</span>
+  <h1 id="quiTitre"></h1>
+  <p class="soustitre" id="quiAide"></p>
+  <div class="choix" id="quiChoix"></div>
+  <button type="button" class="lien-discret" id="bCorriger">Je me suis trompé de prénom ou de classe</button>
+  <p class="mention">Si c'est toi, ton travail à la maison sera rangé avec ton compte de l'Atelier, et tu le retrouveras même sur un autre téléphone.</p>
+</main>
+
+<!-- 3. Ses devoirs — l'écran de toutes les visites suivantes. -->
+<main class="ecran" id="ecranTuiles" hidden>
+  <header class="tete">
+    <div class="salut">
+      <h1 id="salut"></h1>
+      <p class="soustitre" id="consigne"></p>
+    </div>
+    <span class="puce-classe" id="pClasse"></span>
+  </header>
+  <p class="avertir" id="avertir" hidden></p>
+  <div id="devoirs"></div>
+  <footer class="pied" id="pied"></footer>
+</main>
+
+<script src="config.js"></script>
+<script src="catalogue.js"></script>
+<script>
+'use strict';
+
+var CLE_ELEVE = 'maison_eleve_v1';
+var CLE_AVANCEES = 'maison_avancees_v1';
+var CLE_APPAREIL = 'maison_appareil_v1';
+/* À quelles classes l'enseignant a donné chaque travail, tel que le serveur l'a dit à la
+   dernière visite : { code, attributions: { devoir: [classes] } }. Gardé pour que la page
+   s'affiche juste tout de suite, même sans réseau ; rafraîchi à chaque visite. */
+var CLE_ATTRIBUTIONS = 'maison_attributions_v1';
+/* Les quatre classes du collège, toujours les mêmes : l'élève touche la sienne. Le serveur
+   n'enregistre un travail que si sa classe existe sous ce nom dans l'établissement — ce
+   sont les noms que l'Atelier crée d'office (catalogue.js, CLASSES_MAISON). */
+var CLASSES = window.CLASSES_MAISON || ['6e', '5e', '4e', '3e'];
+/* La même règle que le serveur : des lettres, et ce qui les relie. */
+var PRENOM_OK = /^\p{L}[\p{L} '’-]{0,23}$/u;
+/* Au-delà, la question « C'est toi ? » attendra la prochaine visite : un élève ne reste
+   pas devant « Un instant… » parce que le réseau du téléphone traîne. */
+var ATTENTE_MAX = 3500;
+
+var cfg = window.ATELIER_CONFIG || {};
+var API = String(cfg.api || '').replace(/\/+$/, '');
+var CODE_URL = (new URLSearchParams(location.search).get('c') || '').trim().toLowerCase();
+
+function $(s){ return document.querySelector(s); }
+function esc(s){ return String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function plat(t){ return String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase(); }
+function montrer(id){
+  ['#ecranAttente', '#ecranAccueil', '#ecranQui', '#ecranTuiles'].forEach(function(e){ $(e).hidden = e !== id; });
+  window.scrollTo(0, 0);
+}
+
+/* ---- Le téléphone : tout est entouré de try, la navigation privée peut tout refuser ---- */
+function lire(cle){ try{ return JSON.parse(localStorage.getItem(cle) || 'null'); }catch(e){ return null; } }
+function ecrire(cle, v){ try{ if(v == null) localStorage.removeItem(cle); else localStorage.setItem(cle, JSON.stringify(v)); }catch(e){} }
+
+function nouvelId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  var o = new Uint8Array(16); crypto.getRandomValues(o);
+  return Array.prototype.map.call(o, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+}
+/* « léa », « LÉA », « jean-noël » → « Léa », « Jean-Noël ». */
+function prenomPropre(brut){
+  return String(brut || '').normalize('NFC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('fr')
+    .replace(/(^|[ '’-])(\p{L})/gu, function(_, sep, l){ return sep + l.toLocaleUpperCase('fr'); });
+}
+
+/* L'élève de ce téléphone. Le code du lien y est gardé : une page ajoutée aux favoris
+   sans « ?c=… » continue d'envoyer au bon collège. */
+var eleve = lire(CLE_ELEVE);
+if(eleve && (typeof eleve.prenom !== 'string' || CLASSES.indexOf(eleve.classe) < 0)) eleve = null;
+var appareil = (eleve && eleve.appareil) || lire(CLE_APPAREIL) || nouvelId();
+ecrire(CLE_APPAREIL, appareil);   /* survit à « Ce n'est pas moi » : c'est le téléphone */
+var CODE = CODE_URL || (eleve && eleve.code) || '';
+var ENTREE = location.href.replace(/[?#].*$/, '');
+var SUIVI = !!API && /^[a-z0-9]{6,16}$/.test(CODE);
+var gardees = lire(CLE_ATTRIBUTIONS);
+var attributions = gardees && gardees.code === CODE && gardees.attributions ? gardees.attributions : {};
+
+/* `qui` : { compte, nom } s'il a dit « C'est moi », null s'il a dit non ou si personne
+   n'était à proposer, undefined si la question reste à poser. */
+function enregistrer(prenom, classe, qui){
+  eleve = { appareil: appareil, prenom: prenom, classe: classe, code: CODE, entree: ENTREE,
+            compte: qui ? qui.compte : null, nom: qui ? qui.nom : '', verifie: qui !== undefined };
+  ecrire(CLE_ELEVE, eleve);
+}
+function nomAffiche(){ return eleve.nom || eleve.prenom; }
+
+/* ---- Le serveur ---------------------------------------------------------- */
+function poster(chemin, corps){
+  return fetch(API + chemin, {
+    method: 'POST', cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corps)
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok){ var e = new Error(j.erreur || ('HTTP ' + r.status)); e.statut = r.status; throw e; }
+      return j;
+    });
+  });
+}
+/* Les comptes qui pourraient être lui. Rejette si le serveur ne répond pas (ou pas à
+   temps) : la question attendra la visite suivante. */
+function chercher(prenom, classe){
+  var delai = new Promise(function(_, non){ setTimeout(function(){ non(new Error('délai')); }, ATTENTE_MAX); });
+  return Promise.race([poster('/api/devoir/qui', { c: CODE, prenom: prenom, classe: classe }), delai])
+    .then(function(j){ return Array.isArray(j.eleves) ? j.eleves : []; });
+}
+
+/* ---- 1. Qui es-tu ? ------------------------------------------------------ */
+var choix = '';
+function peindreAccueil(prenom, classe){
+  montrer('#ecranAccueil');
+  choix = classe || '';
+  $('#prenom').value = prenom || '';
+  $('#classes').innerHTML = CLASSES.map(function(c){
+    var on = c === choix;
+    return '<button type="button" role="radio" aria-checked="' + on + '" class="classe' + (on ? ' on' : '') + '" data-classe="' + c + '">' + c + '</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-classe]'), function(b){
+    b.addEventListener('click', function(){
+      choix = b.getAttribute('data-classe');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-classe]'), function(x){
+        var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      $('#errClasse').hidden = true; pret();
+    });
+  });
+  $('#mention').textContent = SUIVI
+    ? 'Ton professeur verra ton prénom, ta classe et ton score. Si tu as un compte à l’Atelier, la page te demandera si c’est bien toi. Rien d’autre.'
+    : 'Mode entraînement : rien n’est envoyé à ton professeur.';
+  $('#bPartir').disabled = false; $('#bPartir').textContent = 'C\'est parti ! →';
+  pret();
+}
+function pret(){
+  var ok = PRENOM_OK.test(prenomPropre($('#prenom').value)) && !!choix;
+  $('#bPartir').classList.toggle('pale', !ok);
+  return ok;
+}
+$('#prenom').addEventListener('input', function(){ $('#errPrenom').hidden = true; pret(); });
+$('#formulaire').addEventListener('submit', function(ev){
+  ev.preventDefault();
+  if($('#bPartir').disabled) return;
+  var p = prenomPropre($('#prenom').value), c = choix;
+  $('#errPrenom').hidden = PRENOM_OK.test(p);
+  $('#errClasse').hidden = !!c;
+  if(!pret()) return;
+  /* « Je me suis trompé » vers un autre élève : l'avancée gardée ici n'est pas la sienne. */
+  if(eleve && (plat(eleve.prenom) !== plat(p) || eleve.classe !== c)){ ecrire(CLE_AVANCEES, null); eleve = null; }
+  if(!SUIVI){ enregistrer(p, c, null); peindreTuiles(); return; }
+  $('#bPartir').disabled = true; $('#bPartir').textContent = 'Je te cherche…';
+  chercher(p, c).then(function(trouves){
+    if(trouves.length) peindreQui(p, c, trouves);
+    else { enregistrer(p, c, null); peindreTuiles(); }
+  }, function(){
+    enregistrer(p, c, undefined); peindreTuiles();   /* pas de réponse : on redemandera */
+  });
+});
+
+/* ---- 2. C'est toi ? ------------------------------------------------------ */
+function peindreQui(prenom, classe, trouves){
+  montrer('#ecranQui');
+  var seul = trouves.length === 1;
+  $('#quiTitre').innerHTML = seul ? 'Es-tu bien <strong>' + esc(trouves[0].nom) + '</strong> ?' : 'Lequel es-tu ?';
+  $('#quiAide').textContent = seul ? 'En ' + classe + ', à l’Atelier informatique.' : 'Il y a plusieurs ' + prenom + ' en ' + classe + '.';
+  $('#quiChoix').innerHTML = (seul
+      ? '<button type="button" class="btn primaire geant" data-qui="0">Oui, c’est moi !</button>'
+      : trouves.map(function(t, i){ return '<button type="button" class="btn primaire geant" data-qui="' + i + '">' + esc(t.nom) + '</button>'; }).join('')) +
+    '<button type="button" class="btn" id="bPasMoiQui">' + (seul ? 'Non, ce n’est pas moi' : 'Aucun, ce n’est pas moi') + '</button>';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-qui]'), function(b){
+    b.addEventListener('click', function(){
+      var t = trouves[Number(b.getAttribute('data-qui'))];
+      enregistrer(prenom, classe, { compte: t.compte, nom: t.nom });
+      peindreTuiles(); chargerAvancees();
+    });
+  });
+  $('#bPasMoiQui').addEventListener('click', function(){ enregistrer(prenom, classe, null); peindreTuiles(); });
+  $('#bCorriger').onclick = function(){ peindreAccueil(prenom, classe); };
+}
+
+/* ---- 3. Ses devoirs ------------------------------------------------------ */
+/* Les classes choisies par l'enseignant dans le suivi, sinon celles du catalogue
+   (`niveaux`, [] = toutes). */
+function pourMaClasse(t){
+  if(t.masque || !t.url) return false;
+  var n = Array.isArray(attributions[t.id]) ? attributions[t.id]
+        : Array.isArray(t.niveaux) && t.niveaux.length ? t.niveaux : CLASSES;
+  return n.some(function(x){ return plat(x) === plat(eleve.classe); });
+}
+function lienDe(t){
+  return t.url + (SUIVI ? (t.url.indexOf('?') < 0 ? '?' : '&') + 'c=' + encodeURIComponent(CODE) : '');
+}
+function estFini(a){ return !!(a && a.etapes && a.etape >= a.etapes); }
+
+function tuile(t, a, i){
+  var fait = a && a.etapes ? Math.min(a.etape, a.etapes) : 0, fini = estFini(a);
+  var etat = !a
+    ? '<span class="etat"><span class="etiquette nouveau">Nouveau</span></span>'
+    : '<span class="etat"><span class="barre"><i style="width:' + Math.round(fait * 100 / Math.max(1, a.etapes)) + '%"></i></span>' +
+      (fini ? '<span class="etiquette fini">Fait ✓</span>' : '<span>' + fait + ' / ' + a.etapes + '</span>') +
+      (a.max ? '<span>· ' + a.score + ' / ' + a.max + '</span>' : '') + '</span>';
+  return '<li><a class="tuile' + (fini ? ' fini' : !a ? ' nouveau' : ' encours') + '" href="' + esc(lienDe(t)) + '" style="animation-delay:' + (i * 0.06) + 's">' +
+    '<span class="ic" aria-hidden="true">' + esc(t.ic || '📄') + '</span>' +
+    '<span class="corps"><span class="titre">' + esc(t.titre) + '</span>' +
+      '<span class="meta">' + esc([t.matiere, t.duree].filter(Boolean).join(' · ')) + '</span>' +
+      (t.resume && !fini ? '<span class="resume">' + esc(t.resume) + '</span>' : '') + etat +
+    '</span><span class="fleche" aria-hidden="true">' + (fini ? '↻' : '›') + '</span></a></li>';
+}
+
+function peindreTuiles(){
+  montrer('#ecranTuiles');
+  var mes = (window.TRAVAUX || []).filter(pourMaClasse);
+  var avancees = lire(CLE_AVANCEES) || {};
+  var afaire = mes.filter(function(t){ return !estFini(avancees[t.id]); });
+  var faits = mes.filter(function(t){ return estFini(avancees[t.id]); });
+
+  $('#salut').textContent = 'Salut ' + eleve.prenom + ' !';
+  $('#pClasse').textContent = eleve.classe;
+  $('#consigne').textContent = !mes.length ? ''
+    : afaire.length > 1 ? 'Il te reste ' + afaire.length + ' travaux à faire.'
+    : afaire.length ? 'Il te reste un travail à faire.' : '';
+
+  if(!SUIVI){
+    $('#avertir').hidden = false; $('#avertir').className = 'avertir';
+    $('#avertir').textContent = 'Mode entraînement : ton professeur ne verra pas ton travail. Demande-lui le bon lien.';
+  }
+
+  var h;
+  if(!mes.length){
+    h = '<div class="rien"><span class="ic" aria-hidden="true">🌱</span>Rien pour l’instant en ' + esc(eleve.classe) + '.<br>' +
+        'Ton professeur ajoutera bientôt des révisions ici : garde cette page !</div>';
+  } else if(!afaire.length){
+    h = '<section class="carte bravo"><span class="grand" aria-hidden="true">🎉</span>' +
+          '<h2>Bravo ' + esc(eleve.prenom) + ' !</h2>' +
+          '<p>Tu es à jour : tu n’as rien à faire pour l’instant.</p></section>' +
+        '<section class="groupe faits"><h2>Envie de recommencer ?</h2>' +
+          '<p class="aide">Touche un travail pour le refaire.</p>' +
+          '<ul class="tuiles">' + faits.map(function(t, i){ return tuile(t, avancees[t.id], i); }).join('') + '</ul></section>';
+  } else {
+    h = '<section class="groupe afaire"><h2>À faire <span class="nb">' + afaire.length + '</span></h2>' +
+          '<ul class="tuiles">' + afaire.map(function(t, i){ return tuile(t, avancees[t.id], i); }).join('') + '</ul></section>' +
+        (faits.length
+          ? '<section class="groupe faits"><h2>Déjà fait <span class="nb">' + faits.length + ' ✓</span></h2>' +
+              '<p class="aide">Tu peux les refaire si tu veux.</p>' +
+              '<ul class="tuiles">' + faits.map(function(t, i){ return tuile(t, avancees[t.id], afaire.length + i); }).join('') + '</ul></section>'
+          : '');
+  }
+  $('#devoirs').innerHTML = h;
+  peindrePied(false);
+}
+
+function peindrePied(demande){
+  $('#pied').innerHTML = demande
+    ? '<div class="confirme"><p>Recommencer avec un autre prénom ?</p><div class="deux-btn">' +
+        '<button type="button" class="btn" id="bNon">Non, je reste</button>' +
+        '<button type="button" class="btn danger" id="bOui">Oui, changer</button></div></div>'
+    : '<button type="button" class="lien-discret" id="bPasMoi">' + esc(nomAffiche()) + ' · ' + esc(eleve.classe) + ' — Ce n’est pas toi ?</button>';
+  if(demande){
+    $('#bNon').addEventListener('click', function(){ peindrePied(false); });
+    $('#bOui').addEventListener('click', function(){
+      /* Le travail déjà fait reste chez le professeur ; ici, on repart de zéro. */
+      ecrire(CLE_ELEVE, null); ecrire(CLE_AVANCEES, null); eleve = null;
+      peindreAccueil('', '');
+    });
+  } else {
+    $('#bPasMoi').addEventListener('click', function(){ peindrePied(true); });
+  }
+}
+
+/* Ce que le serveur sait du compte, tous téléphones confondus, fondu dans ce que le
+   téléphone sait déjà : on garde la plus grande avancée, et le score du téléphone (le
+   serveur ne le redonne pas). */
+function chargerAvancees(){
+  if(!SUIVI || !eleve || !eleve.compte) return;
+  var pour = eleve;
+  poster('/api/devoir/avancees', { c: CODE, prenom: eleve.prenom, classe: eleve.classe, compte: eleve.compte })
+    .then(function(j){
+      if(eleve !== pour) return;
+      var serveur = j && j.avancees || {}, a = lire(CLE_AVANCEES) || {}, change = false;
+      Object.keys(serveur).forEach(function(id){
+        var s = serveur[id], l = a[id] || { etape: 0, etapes: 0, score: 0, max: 0 };
+        var etapes = Math.max(l.etapes || 0, s.etapes || 0);
+        var etape = Math.max(l.etape || 0, s.termine ? etapes : (s.etape || 0));
+        if(!a[id] || etape !== l.etape || etapes !== l.etapes){ change = true; a[id] = { etape: etape, etapes: etapes, score: l.score || 0, max: l.max || 0 }; }
+      });
+      if(change){ ecrire(CLE_AVANCEES, a); if(!$('#ecranTuiles').hidden) peindreTuiles(); }
+    }, function(e){
+      /* Compte supprimé, ou élève changé de classe : on reposera la question. */
+      if(e.statut === 404 && eleve === pour){ eleve.compte = null; eleve.nom = ''; eleve.verifie = false; ecrire(CLE_ELEVE, eleve); }
+    });
+}
+
+/* Une question au serveur, en lecture : les classes à qui va chaque travail — et du même
+   coup, un lien périmé se dit tout de suite, plutôt qu'après vingt minutes de travail
+   perdu pour le professeur. */
+function verifierLien(){
+  if(!SUIVI) return;
+  fetch(API + '/api/devoir/classes?c=' + encodeURIComponent(CODE), { cache: 'no-store' }).then(function(r){
+    if(r.ok) r.json().then(function(j){
+      var nouvelles = j && j.attributions && typeof j.attributions === 'object' ? j.attributions : {};
+      var change = JSON.stringify(nouvelles) !== JSON.stringify(attributions);
+      attributions = nouvelles;
+      ecrire(CLE_ATTRIBUTIONS, { code: CODE, attributions: attributions });
+      if(change && eleve && !$('#ecranTuiles').hidden) peindreTuiles();
+    }).catch(function(){});
+    if(r.status === 404 && eleve){
+      $('#avertir').hidden = false; $('#avertir').className = 'avertir ko';
+      $('#avertir').textContent = '⚠ Ce lien ne marche plus. Demande le nouveau lien à ton professeur.';
+    }
+  }).catch(function(){ /* pas de réseau : la page de travail réessaiera ses envois */ });
+}
+
+/* ---- Au démarrage -------------------------------------------------------- */
+/* Le code a changé (nouveau lien distribué), ou l'élève arrive par l'ancienne adresse :
+   on retient le code et CETTE page, que les pages de travail proposent pour revenir. */
+if(eleve && CODE_URL && eleve.code !== CODE_URL) eleve.code = CODE_URL;
+if(eleve){ eleve.appareil = appareil; eleve.entree = ENTREE; ecrire(CLE_ELEVE, eleve); }
+
+if(!eleve){
+  peindreAccueil('', '');
+} else if(SUIVI && !eleve.verifie){
+  /* Inscrit avant que la question existe, ou le serveur n'avait pas répondu : on la pose
+     maintenant. Personne à proposer : c'est réglé, on ne redemandera plus. */
+  montrer('#ecranAttente');
+  chercher(eleve.prenom, eleve.classe).then(function(trouves){
+    if(trouves.length) peindreQui(eleve.prenom, eleve.classe, trouves);
+    else { enregistrer(eleve.prenom, eleve.classe, null); peindreTuiles(); }
+  }, function(){ peindreTuiles(); });
+} else {
+  peindreTuiles();
+  chargerAvancees();
+}
+verifierLien();
+/* Retour depuis une page de travail (bouton « précédent ») : la tuile doit montrer
+   l'avancée toute fraîche, pas celle d'il y a vingt minutes. */
+window.addEventListener('pageshow', function(e){ if(e.persisted && eleve && !$('#ecranTuiles').hidden){ peindreTuiles(); chargerAvancees(); } });
+</script>
+</body>
+</html>

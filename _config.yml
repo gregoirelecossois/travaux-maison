@@ -1,0 +1,7 @@
+# GitHub Pages (Jekyll) : ce qui n'est PAS publié.
+# Les dossiers qui commencent par « _ » (_modele/) et les fichiers cachés (.claude/) sont
+# déjà ignorés d'office ; les pages HTML sans en-tête YAML sont recopiées telles quelles.
+exclude:
+  - CLAUDE.md
+  - README.md
+  - outils/

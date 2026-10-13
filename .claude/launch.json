@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "travaux-maison-essai",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["outils/essai.mjs"],
+      "port": 8790
+    }
+  ]
+}
