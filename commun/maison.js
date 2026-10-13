@@ -32,10 +32,11 @@
  *    envoi en attente repart dès que le réseau revient ou que l'élève rouvre la page ;
  *  - il écrit l'avancée dans maison_avancees_v1, pour la tuile de la page d'entrée.
  *
- * MODE PROFESSEUR (« ?prof=1 » dans l'adresse, posé par l'entrée en mode professeur et
- * par le bouton « Essayer » de la page de suivi) : l'élève est « Prof », rien ne part au
- * serveur et rien n'est gardé sur l'appareil — ni l'élève éventuellement rangé là, ni
- * son avancée ne sont touchés. Recharger la page, c'est tout recommencer.
+ * MODE PROFESSEUR (« ?prof=1 » dans l'adresse, posé par le bouton « Essayer » de la page
+ * de suivi) : l'élève est « Prof », rien ne part au serveur et rien n'est gardé sur
+ * l'appareil — ni l'élève éventuellement rangé là, ni son avancée ne sont touchés.
+ * Recharger la page, c'est tout recommencer. suivi.entree ramène alors au suivi, sur la
+ * fiche du travail.
  *
  * C'est la version sans outil de src/maison/suivi.ts du dépôt le-pc : les deux disent la
  * même chose au serveur, de la même façon.
@@ -72,8 +73,8 @@
   var CODE = ((new URLSearchParams(location.search).get('c') || '').trim() || (e && e.code) || '').toLowerCase();
   var SUIVI = !PROF && !!API && /^[a-z0-9]{6,16}$/.test(CODE);
   /* La page d'entrée : celle que l'élève a ouverte, sinon la racine de ce dépôt. */
-  var ENTREE = PROF ? new URL('../?prof=1', document.currentScript ? document.currentScript.src : location.href).href
-    : e && memeOrigine(String(e.entree || '')) ? String(e.entree)
+  var SUIVI_PROF = 'https://gregoirelecossois.github.io/atelier-informatique/travail-maison.html';
+  var ENTREE = e && memeOrigine(String(e.entree || '')) ? String(e.entree)
     : new URL('../', document.currentScript ? document.currentScript.src : location.href).href;
   if(CODE && ENTREE.indexOf('?') < 0) ENTREE += '?c=' + encodeURIComponent(CODE);
 
@@ -102,7 +103,7 @@
       eleve: eleve ? { prenom: eleve.prenom, classe: eleve.classe, compte: eleve.compte, nom: eleve.nom } : null,
       actif: SUIVI && !!eleve,
       prof: PROF,
-      entree: ENTREE,
+      entree: PROF ? SUIVI_PROF + '#' + encodeURIComponent(devoir) : ENTREE,
       scores: etat.scores,
       envoi: SUIVI && eleve ? 'attente' : 'entrainement',
       etapesFaites: function(){ return etat.scores.filter(function(s){ return s >= 0; }).length; },

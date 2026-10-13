@@ -36,8 +36,9 @@ Les deux dépôts voisins sont déclarés dans `.claude/settings.local.json`
    - `suivi.terminer(i, score)` à la fin de chaque étape ; chaque étape rejouable ;
    - sans élève (`!suivi.eleve`), renvoyer vers `suivi.entree` ; toujours un lien
      « ‹ Mes révisions » vers `suivi.entree`.
-   - Mode professeur (`?prof=1`, bouton « Essayer » du suivi) : `maison.js` s'en charge
-     (élève « Prof », rien d'envoyé ni de gardé). Ne rien verrouiller quand `suivi.prof`.
+   - Mode professeur (`?prof=1`, bouton « ▶ Essayer » de la page de suivi) : `maison.js`
+     s'en charge (élève « Prof », rien d'envoyé ni de gardé, `suivi.entree` ramène au
+     suivi). Ne rien verrouiller quand `suivi.prof`. L'enseignant n'a qu'une page : le suivi.
    - Public : élèves de collège en **enseignement adapté (SEGPA/EREA)**, sur **téléphone**.
      Phrases courtes, vocabulaire simple, gros boutons, une chose à la fois, 15-20 min en
      tout. Pas de saisie de texte libre (les données sont lues par le prof, RGPD).

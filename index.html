@@ -47,11 +47,8 @@
        maison_attributions_v1  à quelles classes va chaque travail, tel que le serveur l'a
                            dit à la dernière visite.
 
-     MODE PROFESSEUR : ?prof=1 (le bouton « Essayer » de la page de suivi). Ni prénom ni
-     classe : tous les travaux du catalogue, même ceux cachés aux élèves, et chaque tuile
-     ouvre son travail avec ?prof=1 — rien n'y est envoyé ni gardé. Cette page ne lit ni
-     n'écrit alors aucune des clés ci-dessus : l'élève éventuellement rangé sur l'appareil
-     n'est pas touché.
+     ?prof=1 : renvoie à la page de suivi de l'enseignant, d'où il essaie chaque travail
+     (bouton « ▶ Essayer »). Cette page ne lit ni n'écrit alors aucune des clés ci-dessus.
 
      Ce qui part d'ici vers le serveur : le prénom tapé et la classe (pour la question 2),
      et le compte choisi (pour l'avancée). Rien n'est enregistré par ces deux routes : seule
@@ -223,6 +220,7 @@ var cfg = window.ATELIER_CONFIG || {};
 var API = String(cfg.api || '').replace(/\/+$/, '');
 var CODE_URL = (new URLSearchParams(location.search).get('c') || '').trim().toLowerCase();
 var PROF = new URLSearchParams(location.search).has('prof');
+var SUIVI_PROF = 'https://gregoirelecossois.github.io/atelier-informatique/travail-maison.html';
 
 function $(s){ return document.querySelector(s); }
 function esc(s){ return String(s == null ? '' : s)
@@ -371,21 +369,18 @@ function pourMaClasse(t){
   return n.some(function(x){ return plat(x) === plat(eleve.classe); });
 }
 function lienDe(t){
-  var sep = t.url.indexOf('?') < 0 ? '?' : '&';
-  return t.url + (PROF ? sep + 'prof=1' : SUIVI ? sep + 'c=' + encodeURIComponent(CODE) : '');
+  return t.url + (SUIVI ? (t.url.indexOf('?') < 0 ? '?' : '&') + 'c=' + encodeURIComponent(CODE) : '');
 }
 function estFini(a){ return !!(a && a.etapes && a.etape >= a.etapes); }
 
 function tuile(t, a, i){
   var fait = a && a.etapes ? Math.min(a.etape, a.etapes) : 0, fini = estFini(a);
-  var etat = PROF
-    ? (t.masque ? '<span class="etat"><span class="etiquette">Caché aux élèves</span></span>' : '')
-    : !a
+  var etat = !a
     ? '<span class="etat"><span class="etiquette nouveau">Nouveau</span></span>'
     : '<span class="etat"><span class="barre"><i style="width:' + Math.round(fait * 100 / Math.max(1, a.etapes)) + '%"></i></span>' +
       (fini ? '<span class="etiquette fini">Fait ✓</span>' : '<span>' + fait + ' / ' + a.etapes + '</span>') +
       (a.max ? '<span>· ' + a.score + ' / ' + a.max + '</span>' : '') + '</span>';
-  return '<li><a class="tuile' + (PROF ? '' : fini ? ' fini' : !a ? ' nouveau' : ' encours') + '" href="' + esc(lienDe(t)) + '" style="animation-delay:' + (i * 0.06) + 's">' +
+  return '<li><a class="tuile' + (fini ? ' fini' : !a ? ' nouveau' : ' encours') + '" href="' + esc(lienDe(t)) + '" style="animation-delay:' + (i * 0.06) + 's">' +
     '<span class="ic" aria-hidden="true">' + esc(t.ic || '📄') + '</span>' +
     '<span class="corps"><span class="titre">' + esc(t.titre) + '</span>' +
       '<span class="meta">' + esc([t.matiere, t.duree].filter(Boolean).join(' · ')) + '</span>' +
@@ -433,21 +428,6 @@ function peindreTuiles(){
   }
   $('#devoirs').innerHTML = h;
   peindrePied(false);
-}
-
-/* ---- Mode professeur ------------------------------------------------------ */
-function peindreProf(){
-  montrer('#ecranTuiles');
-  var tous = (window.TRAVAUX || []).filter(function(t){ return !!t.url; });
-  $('#salut').textContent = 'Mode professeur';
-  $('#pClasse').hidden = true;
-  $('#consigne').textContent = 'Tous les travaux, pour toutes les classes.';
-  $('#avertir').hidden = false; $('#avertir').className = 'avertir';
-  $('#avertir').textContent = 'Rien n’est envoyé, rien n’est gardé : essaie et refais autant que tu veux.';
-  $('#devoirs').innerHTML = tous.length
-    ? '<ul class="tuiles">' + tous.map(function(t, i){ return tuile(t, null, i); }).join('') + '</ul>'
-    : '<div class="rien"><span class="ic" aria-hidden="true">🌱</span>Aucun travail dans catalogue.js.</div>';
-  $('#pied').innerHTML = '';
 }
 
 function peindrePied(demande){
@@ -518,7 +498,7 @@ if(eleve && CODE_URL && eleve.code !== CODE_URL) eleve.code = CODE_URL;
 if(eleve){ eleve.appareil = appareil; eleve.entree = ENTREE; ecrire(CLE_ELEVE, eleve); }
 
 if(PROF){
-  peindreProf();
+  location.replace(SUIVI_PROF);
 } else if(!eleve){
   peindreAccueil('', '');
 } else if(SUIVI && !eleve.verifie){
