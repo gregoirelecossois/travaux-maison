@@ -24,10 +24,14 @@
  *   titre     le nom affiché, à l'élève comme à l'enseignant
  *   ic        un emoji
  *   matiere   « Technologie », « Sciences »… — sert à regrouper quand la liste grandit
- *   niveaux   les classes à qui la tuile s'affiche PAR DÉFAUT : ['5e', '3e']. [] = toutes.
- *             L'enseignant les change ensuite d'un clic dans travail-maison.html (« Pour
- *             quelles classes ? ») : ce choix, rangé sur le serveur pour son établissement,
- *             l'emporte sur celui-ci.
+ *   niveaux   les classes à qui la tuile s'affiche PAR DÉFAUT. ⚠ Un NOUVEAU travail prend
+ *             `niveaux: []` : il n'est donné à aucune classe, dans aucun établissement, et
+ *             chaque enseignant le donne à ses classes d'un clic dans travail-maison.html
+ *             (« Pour 6e 5e 4e 3e »). Ce choix, rangé sur le serveur pour son
+ *             établissement, l'emporte toujours sur celui-ci.
+ *             Les travaux distribués avant cette règle gardent leurs classes ['5e', '3e'] :
+ *             les retirer les enlèverait aux élèves des établissements qui n'ont rien
+ *             choisi. Ne jamais en ajouter à un travail.
  *   duree     ce qu'on annonce à l'élève
  *   resume    une phrase : ce que l'élève y fait
  *   url       l'adresse de la page, SANS le code — la page d'entrée ajoute « ?c=CODE »

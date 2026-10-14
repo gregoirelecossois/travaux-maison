@@ -374,11 +374,12 @@ function peindreQui(prenom, classe, trouves){
 
 /* ---- 3. Ses devoirs ------------------------------------------------------ */
 /* Les classes choisies par l'enseignant dans le suivi, sinon celles du catalogue
-   (`niveaux`, [] = toutes). */
+   (`niveaux`). Pas de `niveaux`, ou [] : aucune classe — chaque enseignant donne le
+   travail à ses classes lui-même. */
 function pourMaClasse(t){
   if(t.masque || !t.url) return false;
   var n = Array.isArray(attributions[t.id]) ? attributions[t.id]
-        : Array.isArray(t.niveaux) && t.niveaux.length ? t.niveaux : CLASSES;
+        : Array.isArray(t.niveaux) ? t.niveaux : [];
   return n.some(function(x){ return plat(x) === plat(eleve.classe); });
 }
 function lienDe(t){
