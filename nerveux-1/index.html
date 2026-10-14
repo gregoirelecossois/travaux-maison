@@ -50,19 +50,25 @@ var GRILLE = (function(){
   return s + '</svg>';
 })();
 
-/* Un neurone, puis une synapse, très simplifiés. */
-var NEURONE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 200" font-family="Nunito, sans-serif" font-size="13" font-weight="700">' +
-  '<rect width="340" height="200" fill="#fff"/>' +
-  '<g stroke="#9b7cc0" stroke-width="4" fill="none" stroke-linecap="round"><path d="M40 70l-22-20M40 70l-26 8M40 70l-12 26M52 52l-6-30M60 56l18-24"/>' +
-  '<path d="M60 76C110 90 150 70 196 82"/><path d="M196 82l16-16M196 82l18 4M196 82l10 18"/>' +
-  '<path d="M246 100l-18-16M246 100l-22 6M246 100l-8 20"/><path d="M262 104C290 110 310 130 326 150"/></g>' +
-  '<circle cx="50" cy="68" r="18" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/><circle cx="50" cy="68" r="6" fill="#6b4a8a"/>' +
-  '<circle cx="254" cy="100" r="15" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/>' +
-  '<g fill="#2bb3a3"><circle cx="218" cy="84" r="3"/><circle cx="224" cy="92" r="3"/><circle cx="216" cy="96" r="3"/><circle cx="226" cy="82" r="3"/></g>' +
-  '<text x="14" y="125" fill="#333">corps cellulaire</text><text x="100" y="62" fill="#333">prolongement</text>' +
-  '<text x="170" y="140" fill="#2b8a7e">synapse :</text><text x="170" y="156" fill="#2b8a7e">neurotransmetteurs</text>' +
-  '<text x="236" y="70" fill="#333">neurone 2</text><path d="M214 128L220 102" stroke="#2b8a7e" stroke-width="2"/>' +
-  '<text x="14" y="185" fill="#a5402d">⚡ électrique le long du neurone · 🧪 chimique dans la synapse</text></svg>';
+/* Un neurone, puis une synapse, très simplifiés. Presque carré, texte gros : il doit se
+   lire sur un téléphone (375 px) sans zoomer. */
+var NEURONE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 332" font-family="Nunito, sans-serif" font-size="16" font-weight="700">' +
+  '<rect width="320" height="332" fill="#fff"/>' +
+  '<circle cx="172" cy="186" r="25" fill="#e3f6f3" stroke="#2bb3a3" stroke-width="2" stroke-dasharray="5 4"/>' +
+  '<g stroke="#9b7cc0" stroke-width="4" fill="none" stroke-linecap="round">' +
+  '<path d="M40 42l-22-20M38 62l-28 6M48 74l-10 24M56 35l-2-28"/>' +
+  '<path d="M66 72C80 130 140 120 150 175"/><path d="M150 175l16 4M150 175l6 14M150 175l18-8"/>' +
+  '<path d="M198 194l-10-10M194 206l-10 2M206 189l-2-14"/><path d="M224 216C250 235 280 245 300 270"/></g>' +
+  '<circle cx="55" cy="55" r="20" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/><circle cx="55" cy="55" r="7" fill="#6b4a8a"/>' +
+  '<circle cx="210" cy="205" r="17" fill="#c9b3e6" stroke="#9b7cc0" stroke-width="3"/>' +
+  '<g fill="#2bb3a3"><circle cx="175" cy="186" r="3.5"/><circle cx="181" cy="177" r="3.5"/><circle cx="171" cy="196" r="3.5"/><circle cx="183" cy="192" r="3.5"/></g>' +
+  '<text x="84" y="50" fill="#333">corps cellulaire</text><text x="84" y="69" fill="#6b4a8a">du neurone 1</text>' +
+  '<text x="14" y="152" fill="#333">prolongement</text>' +
+  '<text x="234" y="198" fill="#6b4a8a">neurone 2</text>' +
+  '<path d="M140 226L162 204" stroke="#2b8a7e" stroke-width="2"/>' +
+  '<text x="40" y="242" fill="#2b8a7e">synapse :</text><text x="40" y="261" fill="#2b8a7e">neurotransmetteurs</text>' +
+  '<text x="12" y="302" fill="#a5402d">⚡ électrique le long du neurone</text>' +
+  '<text x="12" y="324" fill="#a5402d">🧪 chimique dans la synapse</text></svg>';
 
 /* ------------------------------------------------------------------ le réflexe */
 
