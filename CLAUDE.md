@@ -53,6 +53,8 @@ reprendre, et comment tester. La lire à chaque demande de devoir.
 4. **Déclarer le travail dans `catalogue.js`** (en tête du tableau : le plus récent en
    premier) : `id, titre, ic, matiere, niveaux, duree, resume, url, etapes`. `url` absolue,
    sans `?c=` : `https://gregoirelecossois.github.io/travaux-maison/<id>/`.
+   **`niveaux: []` pour tout nouveau travail** : il n'est donné à aucune classe, chaque
+   enseignant (Grégoire compris) le donne à ses classes dans la page de suivi.
 5. **Essayer en local** (voir plus bas) : parcours complet, sur un écran de téléphone
    (375 px de large).
 6. **Publier, dans cet ordre** : la page d'abord, l'entrée du catalogue ensuite — sinon
@@ -62,7 +64,8 @@ reprendre, et comment tester. La lire à chaque demande de devoir.
 
 Rien à changer sur le serveur pour un nouveau travail : il range tout identifiant.
 Les classes à qui va un travail se changent ensuite d'un clic dans la page de suivi
-(« Pour quelles classes ? ») ; `niveaux` n'est que la valeur par défaut.
+(« Pour 6e 5e 4e 3e ») ; `niveaux` n'est que la valeur par défaut, vide pour les
+nouveaux travaux. Ne jamais toucher aux `niveaux` des travaux déjà distribués.
 
 ## Essayer sans toucher aux vraies données
 

@@ -100,8 +100,10 @@ Nouveau type de jeu utile à plusieurs devoirs ? L'ajouter à `commun/jeux.js` (
 ## 4. Déclarer, essayer, publier
 
 1. `catalogue.js` : en tête, `etapes` = noms des missions dans l'ordre (même nombre !).
-   `niveaux` par défaut ; dans un même niveau, l'ordre du tableau est l'ordre des
-   tuiles : mettre d'abord ce qui se fait d'abord.
+   `niveaux: []` : un nouveau travail n'est donné à aucune classe, chaque enseignant le
+   donne aux siennes dans la page de suivi (le dire à Grégoire une fois publié). Ne
+   jamais toucher aux `niveaux` des travaux déjà distribués. L'ordre du tableau est
+   l'ordre des tuiles : mettre d'abord ce qui se fait d'abord.
 2. Essayer avec le serveur d'essai (`travaux-maison-essai`, port 8790) :
    - `http://localhost:8790/<id>/?prof=1` en 375×812 ;
    - console : `await import('/outils/robot.js'); Robot.toutJouer()` puis
