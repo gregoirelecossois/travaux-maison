@@ -11,15 +11,17 @@
  *
  * Ce que la page en reçoit :
  *   suivi.eleve        { prenom, classe, compte, nom } donné par la page d'entrée, ou null
- *                      si l'élève n'y est pas passé : la page l'y renvoie (suivi.entree).
- *   suivi.actif        true : le professeur verra ce travail. false : entraînement, rien
- *                      ne part (pas de code dans le lien, ou pas de serveur).
+ *                      si l'élève n'y est pas passé, ou s'il n'a pas de code (lien sans
+ *                      « ?c=… ») : la page l'y renvoie (suivi.entree), qui lui dit de
+ *                      demander le bon lien. Il n'y a pas de « mode entraînement ».
+ *   suivi.actif        true : le professeur verra ce travail (dès qu'il y a un élève ;
+ *                      jamais en mode professeur).
  *   suivi.entree       l'adresse de la page d'entrée, pour le bouton « Mes révisions ».
  *   suivi.scores       le meilleur score de chaque étape ; -1 = pas encore faite.
  *   suivi.terminer(i, score)   l'étape i (0, 1, 2…) est faite avec ce score. On garde le
  *                      MEILLEUR essai : refaire une étape ne fait jamais baisser le score.
  *   suivi.etapesFaites(), suivi.scoreTotal()
- *   suivi.envoi        'entrainement' | 'attente' | 'envoye' | 'refuse'
+ *   suivi.envoi        'attente' | 'envoye' | 'refuse' ('entrainement' : seulement sans élève)
  *   suivi.prof         true : le professeur essaie la page (« ?prof=1 ») — voir plus bas.
  *   suivi.surChangement(fn)    rappelé à chaque changement de scores ou d'envoi.
  *
@@ -72,6 +74,8 @@
     : null;
   var CODE = ((new URLSearchParams(location.search).get('c') || '').trim() || (e && e.code) || '').toLowerCase();
   var SUIVI = !PROF && !!API && /^[a-z0-9]{6,16}$/.test(CODE);
+  /* Pas de code : pas d'élève, la page renvoie à l'entrée qui dit de demander le bon lien. */
+  if(!PROF && !SUIVI) eleve = null;
   /* La page d'entrée : celle que l'élève a ouverte, sinon la racine de ce dépôt. */
   var SUIVI_PROF = 'https://gregoirelecossois.github.io/atelier-informatique/travail-maison.html';
   var ENTREE = e && memeOrigine(String(e.entree || '')) ? String(e.entree)

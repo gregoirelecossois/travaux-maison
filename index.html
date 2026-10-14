@@ -47,6 +47,10 @@
        maison_attributions_v1  à quelles classes va chaque travail, tel que le serveur l'a
                            dit à la dernière visite.
 
+     SANS CODE (« ?c=… » absent du lien et jamais retenu sur ce téléphone), la page ne
+     sait ni à quel établissement envoyer, ni quels travaux l'enseignant a donnés : elle
+     dit seulement de demander le bon lien. Il n'y a pas de « mode entraînement ».
+
      ?prof=1 : renvoie à la page de suivi de l'enseignant, d'où il essaie chaque travail
      (bouton « ▶ Essayer »). Cette page ne lit ni n'écrit alors aucune des clés ci-dessus.
 
@@ -148,6 +152,13 @@
   <p>Un instant…</p>
 </main>
 
+<!-- Lien sans code : rien d'autre à faire que demander le bon lien. -->
+<main class="ecran accueil" id="ecranLien" hidden>
+  <div class="maisonnette" aria-hidden="true">🔗</div>
+  <h1>Il manque un bout <span>du lien</span></h1>
+  <p class="soustitre">Demande à ton professeur le lien de tes révisions à la maison.</p>
+</main>
+
 <!-- 1. Qui es-tu ? — la seule fois où l'élève écrit quelque chose. -->
 <main class="ecran accueil" id="ecranAccueil" hidden>
   <div class="maisonnette" aria-hidden="true">🏠</div>
@@ -227,7 +238,7 @@ function esc(s){ return String(s == null ? '' : s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function plat(t){ return String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase(); }
 function montrer(id){
-  ['#ecranAttente', '#ecranAccueil', '#ecranQui', '#ecranTuiles'].forEach(function(e){ $(e).hidden = e !== id; });
+  ['#ecranAttente', '#ecranLien', '#ecranAccueil', '#ecranQui', '#ecranTuiles'].forEach(function(e){ $(e).hidden = e !== id; });
   window.scrollTo(0, 0);
 }
 
@@ -257,6 +268,11 @@ var ENTREE = location.href.replace(/[?#].*$/, '');
 var SUIVI = !!API && /^[a-z0-9]{6,16}$/.test(CODE);
 var gardees = lire(CLE_ATTRIBUTIONS);
 var attributions = gardees && gardees.code === CODE && gardees.attributions ? gardees.attributions : {};
+/* Première visite avec ce code : on attend la réponse du serveur (ATTENTE_MAX au plus)
+   avant de montrer les tuiles, pour qu'un travail décoché par l'enseignant n'apparaisse
+   pas, même un instant, avec les classes par défaut du catalogue. */
+var attenteFinie = !!(gardees && gardees.code === CODE && gardees.attributions);
+var attributionsPretes = Promise.resolve(), enAttente = false;
 
 /* `qui` : { compte, nom } s'il a dit « C'est moi », null s'il a dit non ou si personne
    n'était à proposer, undefined si la question reste à poser. */
@@ -307,9 +323,7 @@ function peindreAccueil(prenom, classe){
       $('#errClasse').hidden = true; pret();
     });
   });
-  $('#mention').textContent = SUIVI
-    ? 'Ton professeur verra ton prénom, ta classe et ton score. Si tu as un compte à l’Atelier, la page te demandera si c’est bien toi. Rien d’autre.'
-    : 'Mode entraînement : rien n’est envoyé à ton professeur.';
+  $('#mention').textContent = 'Ton professeur verra ton prénom, ta classe et ton score. Si tu as un compte à l’Atelier, la page te demandera si c’est bien toi. Rien d’autre.';
   $('#bPartir').disabled = false; $('#bPartir').textContent = 'C\'est parti ! →';
   pret();
 }
@@ -328,7 +342,6 @@ $('#formulaire').addEventListener('submit', function(ev){
   if(!pret()) return;
   /* « Je me suis trompé » vers un autre élève : l'avancée gardée ici n'est pas la sienne. */
   if(eleve && (plat(eleve.prenom) !== plat(p) || eleve.classe !== c)){ ecrire(CLE_AVANCEES, null); eleve = null; }
-  if(!SUIVI){ enregistrer(p, c, null); peindreTuiles(); return; }
   $('#bPartir').disabled = true; $('#bPartir').textContent = 'Je te cherche…';
   chercher(p, c).then(function(trouves){
     if(trouves.length) peindreQui(p, c, trouves);
@@ -343,7 +356,7 @@ function peindreQui(prenom, classe, trouves){
   montrer('#ecranQui');
   var seul = trouves.length === 1;
   $('#quiTitre').innerHTML = seul ? 'Es-tu bien <strong>' + esc(trouves[0].nom) + '</strong> ?' : 'Lequel es-tu ?';
-  $('#quiAide').textContent = seul ? 'En ' + classe + ', à l’Atelier informatique.' : 'Il y a plusieurs ' + prenom + ' en ' + classe + '.';
+  $('#quiAide').textContent = seul ? 'En classe de ' + classe : 'Il y a plusieurs ' + prenom + ' en ' + classe + '.';
   $('#quiChoix').innerHTML = (seul
       ? '<button type="button" class="btn primaire geant" data-qui="0">Oui, c’est moi !</button>'
       : trouves.map(function(t, i){ return '<button type="button" class="btn primaire geant" data-qui="' + i + '">' + esc(t.nom) + '</button>'; }).join('')) +
@@ -389,6 +402,15 @@ function tuile(t, a, i){
 }
 
 function peindreTuiles(){
+  if(!attenteFinie){
+    montrer('#ecranAttente');
+    if(!enAttente){
+      enAttente = true;
+      var fin = function(){ if(!attenteFinie){ attenteFinie = true; peindreTuiles(); } };
+      attributionsPretes.then(fin, fin); setTimeout(fin, ATTENTE_MAX);
+    }
+    return;
+  }
   montrer('#ecranTuiles');
   var mes = (window.TRAVAUX || []).filter(pourMaClasse);
   var avancees = lire(CLE_AVANCEES) || {};
@@ -400,11 +422,6 @@ function peindreTuiles(){
   $('#consigne').textContent = !mes.length ? ''
     : afaire.length > 1 ? 'Il te reste ' + afaire.length + ' travaux à faire.'
     : afaire.length ? 'Il te reste un travail à faire.' : '';
-
-  if(!SUIVI){
-    $('#avertir').hidden = false; $('#avertir').className = 'avertir';
-    $('#avertir').textContent = 'Mode entraînement : ton professeur ne verra pas ton travail. Demande-lui le bon lien.';
-  }
 
   var h;
   if(!mes.length){
@@ -475,9 +492,9 @@ function chargerAvancees(){
    coup, un lien périmé se dit tout de suite, plutôt qu'après vingt minutes de travail
    perdu pour le professeur. */
 function verifierLien(){
-  if(!SUIVI) return;
-  fetch(API + '/api/devoir/classes?c=' + encodeURIComponent(CODE), { cache: 'no-store' }).then(function(r){
-    if(r.ok) r.json().then(function(j){
+  if(!SUIVI) return Promise.resolve();
+  return fetch(API + '/api/devoir/classes?c=' + encodeURIComponent(CODE), { cache: 'no-store' }).then(function(r){
+    if(r.ok) return r.json().then(function(j){
       var nouvelles = j && j.attributions && typeof j.attributions === 'object' ? j.attributions : {};
       var change = JSON.stringify(nouvelles) !== JSON.stringify(attributions);
       attributions = nouvelles;
@@ -497,11 +514,14 @@ function verifierLien(){
 if(eleve && CODE_URL && eleve.code !== CODE_URL) eleve.code = CODE_URL;
 if(eleve){ eleve.appareil = appareil; eleve.entree = ENTREE; ecrire(CLE_ELEVE, eleve); }
 
+if(!PROF) attributionsPretes = verifierLien();
 if(PROF){
   location.replace(SUIVI_PROF);
+} else if(!SUIVI){
+  montrer('#ecranLien');
 } else if(!eleve){
   peindreAccueil('', '');
-} else if(SUIVI && !eleve.verifie){
+} else if(!eleve.verifie){
   /* Inscrit avant que la question existe, ou le serveur n'avait pas répondu : on la pose
      maintenant. Personne à proposer : c'est réglé, on ne redemandera plus. */
   montrer('#ecranAttente');
@@ -513,7 +533,6 @@ if(PROF){
   peindreTuiles();
   chargerAvancees();
 }
-if(!PROF) verifierLien();
 /* Retour depuis une page de travail (bouton « précédent ») : la tuile doit montrer
    l'avancée toute fraîche, pas celle d'il y a vingt minutes. */
 window.addEventListener('pageshow', function(e){ if(e.persisted && eleve && !$('#ecranTuiles').hidden){ peindreTuiles(); chargerAvancees(); } });
