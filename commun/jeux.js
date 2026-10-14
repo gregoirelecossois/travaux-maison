@@ -30,6 +30,7 @@
  *   qcm      { q, visuel?, choix: ['…' | {txt, ic?, img?}], bon: 0, explication?, grille? }
  *   vf       { q, visuel?, vrai: true, explication? }
  *   eclair   { consigne, secondes: 8, items: [{ q, vrai, explication? }] }   vrai/faux chronométré
+ *            secondes: 0 → la même série, sans chrono (l'élève prend son temps)
  *   tri      { consigne, bacs: [{ nom, ic?, couleur? }], cartes: [{ txt, ic?, img?, bac: 0, pourquoi? }] }
  *   ordre    { consigne, visuel?, items: ['premier', 'deuxième', …] }      dans le BON ordre
  *   paires   { consigne, paires: [[gauche, droite], …] }  gauche/droite : '…' ou {txt, ic?, img?}
@@ -244,12 +245,14 @@
 
   /* --- Vrai ou faux, contre la montre --- */
   JEUX.eclair = function(zone, j, fin){
-    var items = melanger(j.items), n = 0, pts = 0, duree = (j.secondes || 8) * 1000, minuteur = null;
+    var items = melanger(j.items), n = 0, pts = 0, minuteur = null;
+    var chrono = j.secondes !== 0, duree = (j.secondes || 8) * 1000;
     function suivant(){
       var it = items[n];
       if(!it){ fin(pts); return; }
-      zone.innerHTML = '<p class="consigne">⚡ ' + fmt(j.consigne || 'Vrai ou faux ? Vite !') + ' <span class="compte">' + (n + 1) + ' / ' + items.length + '</span></p>' +
-        '<div class="chrono"><i></i></div>' + enTete(it.q, it.visuel) +
+      zone.innerHTML = '<p class="consigne">' + (chrono ? '⚡ ' : '') + fmt(j.consigne || (chrono ? 'Vrai ou faux ? Vite !' : 'Vrai ou faux ?')) +
+          ' <span class="compte">' + (n + 1) + ' / ' + items.length + '</span></p>' +
+        (chrono ? '<div class="chrono"><i></i></div>' : '') + enTete(it.q, it.visuel) +
         '<div class="choix grille vraifaux"><button type="button" class="btn rep" data-v="1"><span class="ic">👍</span><span>Vrai</span></button>' +
         '<button type="button" class="btn rep" data-v="0"><span class="ic">👎</span><span>Faux</span></button></div>';
       var barre = $('.chrono i', zone), t0 = performance.now(), fini = false;
@@ -274,7 +277,7 @@
         }, 500);
       }
       $$('.rep', zone).forEach(function(b){ b.addEventListener('click', function(){ repondre(b.getAttribute('data-v') === '1'); }); });
-      minuteur = requestAnimationFrame(tic);
+      if(chrono) minuteur = requestAnimationFrame(tic);
     }
     suivant();
   };

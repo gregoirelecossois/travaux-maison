@@ -16,8 +16,14 @@
 <link rel="stylesheet" href="../commun/maison.css">
 <link rel="stylesheet" href="../commun/jeux.css">
 <style>
-  .aveugle{background:#fff;width:100%;height:150px;display:flex;align-items:center;justify-content:space-between;padding:0 8%;color:#111;font-size:2.6rem;font-weight:800}
-  .aveugle .rond{width:34px;height:34px;border-radius:50%;background:#111}
+  /* La tache aveugle sur un quadrillage : quand le rond disparaît, le cerveau y met… du
+     quadrillage. C'est bien plus parlant qu'un fond blanc. */
+  .aveugle{width:100%;height:150px;display:flex;align-items:center;justify-content:space-between;padding:0 8%;color:#111;font-size:2.6rem;font-weight:800;
+       background-color:#fff;background-position:center;background-size:20px 20px;
+       background-image:linear-gradient(#7d8797 2px,transparent 2px),linear-gradient(90deg,#7d8797 2px,transparent 2px)}
+  /* La gomme du tri : un dessin à la taille des emojis des autres cartes. */
+  .carte-tri img[src$="gomme-dessin.svg"]{height:3.6rem;background:none;border-radius:0}
+  .aveugle .rond{width:36px;height:36px;border-radius:50%;background:#c62828}
   .fenetres{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#fff;width:100%;padding:6px}
   .fenetres span{display:flex;flex-direction:column;align-items:center;color:#222;font-weight:800;font-size:.85rem}
   .fenetres img{width:100%;border-radius:6px}
@@ -117,6 +123,23 @@ var LAMPE = { type: 'perso', max: 3, rendre: function(zone, fin, o){
   defi();
 } };
 
+/* L'œil à légender, redessiné ici : l'œil occupe la moitié du schéma pour qu'on
+   distingue sur un téléphone la rétine (l'arc rouge) de l'image à l'envers posée contre
+   elle. Les rayons partent du haut de la flamme et du bas de la bougie, se croisent
+   dans la pupille et s'arrêtent sur la rétine. */
+var OEIL_MUET = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 250"><rect width="340" height="250" fill="#fff"/>' +
+  '<rect x="22" y="122" width="16" height="24" fill="#fff8e6" stroke="#333" stroke-width="1.5"/>' +
+  '<ellipse cx="30" cy="114" rx="6" ry="9" fill="#ffb300" stroke="#d35400" stroke-width="1.5"/>' +
+  '<circle cx="244" cy="125" r="90" fill="none" stroke="#2b2b2b" stroke-width="3"/>' +
+  '<path d="M277.7 41.6A90 90 0 0 1 277.7 208.4" fill="none" stroke="#c62828" stroke-width="8" stroke-linecap="round"/>' +
+  '<path d="M153 78V114M153 136V172" stroke="#2b2b2b" stroke-width="4"/>' +
+  '<ellipse cx="164" cy="125" rx="6" ry="17" fill="#dbe9f7" stroke="#2b2b2b" stroke-width="1.5"/>' +
+  '<path d="M30 104L329.5 153.1" stroke="#e65100" stroke-width="2.5"/>' +
+  '<path d="M30 146L329.5 96.9" stroke="#1565c0" stroke-width="2.5"/><path d="M88 113.5l-9-4v8z" fill="#e65100"/>' +
+  '<path d="M88 136.5l-9-4v8z" fill="#1565c0"/>' +
+  '<rect x="308.5" y="96.9" width="12" height="47.3" fill="#fff8e6" stroke="#333" stroke-width="1.5"/>' +
+  '<ellipse cx="314.5" cy="149.1" rx="4" ry="6" fill="#ffb300" stroke="#d35400" stroke-width="1"/></svg>';
+
 Jeux.lancer({
   devoir: 'lumiere-1',
   titre: 'La lumière',
@@ -133,14 +156,14 @@ Jeux.lancer({
           texte: 'La rétine change la lumière en message électrique.\nLe **nerf optique** l’envoie au **cerveau**.\nLe cerveau remet l’image **à l’endroit**.' }
       ],
       jeux: [
-        { type: 'legende', consigne: 'Touche le nom du repère qui clignote.', visuel: { img: 'img/oeil-muet.webp', alt: 'Schéma de l’œil à légender', clair: true },
-          reperes: [{ x: 12, y: 58, bon: 'l’objet' }, { x: 61, y: 36, bon: 'la pupille' }, { x: 84, y: 72, bon: 'la rétine' }, { x: 85.5, y: 46, bon: 'l’image à l’envers', haut: true }] },
+        { type: 'legende', consigne: 'Touche le nom du repère qui clignote.', visuel: { svg: OEIL_MUET, alt: 'Schéma de l’œil à légender', clair: true },
+          reperes: [{ x: 8.8, y: 67, bon: 'l’objet' }, { x: 45, y: 28, bon: 'la pupille', haut: true }, { x: 88.1, y: 78.4, bon: 'la rétine' }, { x: 80.5, y: 50, bon: 'l’image à l’envers', haut: true }] },
         { type: 'ordre', consigne: 'Le chemin pour voir : remets-le dans l’ordre.',
           items: [{ ic: '🕯️', txt: 'La lumière de l’objet' }, { ic: '⚫', txt: 'La pupille' }, { ic: '🔴', txt: 'La rétine' }, { ic: '〰️', txt: 'Le nerf optique' }, { ic: '🧠', txt: 'Le cerveau' }] },
         { type: 'qcm', q: 'Ferme l’œil **gauche**. Fixe la **croix** avec l’œil droit. Approche puis éloigne doucement le téléphone… Le rond disparaît ! Que vois-tu à sa place ?',
           visuel: { html: '<div class="aveugle"><span>✚</span><span class="rond"></span></div>' },
-          choix: ['Du blanc, comme autour', 'Un trou noir'], bon: 0, fixe: true, toujours: true,
-          explication: 'C’est ta **tache aveugle** : là où part le nerf optique, la rétine n’a pas de récepteurs. Ton cerveau bouche le trou avec ce qu’il y a autour.' }
+          choix: ['Le quadrillage, comme autour', 'Un trou blanc', 'Un trou noir'], bon: 0, fixe: true, toujours: true,
+          explication: 'C’est ta **tache aveugle** : là où part le nerf optique, la rétine n’a pas de récepteurs. Ton œil ne voit rien à cet endroit… et ton cerveau **complète** avec le quadrillage qu’il y a autour.' }
       ] },
 
     /* ---------------------------------------------------------------- 2 */
@@ -181,7 +204,7 @@ Jeux.lancer({
         { type: 'qcm', q: 'Quel dessin montre le **bon** trajet de la lumière ?', grille: true,
           choix: [{ img: TRAJET_JUSTE, txt: 'A' }, { img: TRAJET_OEIL, txt: 'B' }, { img: TRAJET_COURBE, txt: 'C' }], bon: 0,
           explication: 'A : la lumière part de la source, va tout droit jusqu’à l’objet, puis jusqu’à l’œil. L’œil n’envoie rien.' },
-        { type: 'eclair', consigne: 'Vrai ou faux ? Vite !', secondes: 12, items: [
+        { type: 'eclair', consigne: 'Vrai ou faux ?', secondes: 0, items: [
           { q: 'Dans l’air, la lumière se propage en ligne droite.', vrai: true, explication: 'L’air est un milieu homogène : la lumière va tout droit.' },
           { q: 'Pour voir, l’œil envoie des rayons vers les objets.', vrai: false, explication: 'C’est l’inverse : la lumière des objets ENTRE dans l’œil.' },
           { q: 'Le brouillard permet de voir le faisceau des phares.', vrai: true, explication: 'Les gouttes du brouillard renvoient un peu de lumière : on voit le faisceau.' },
@@ -209,7 +232,7 @@ Jeux.lancer({
             { txt: 'L’aluminium', ic: '🥫', bac: 0, pourquoi: 'Aucune lumière ne passe : opaque.' },
             { txt: 'L’eau', ic: '💧', bac: 2, pourquoi: 'On voit net à travers : transparent.' },
             { txt: 'Le papier bulle', ic: '🫧', bac: 1, pourquoi: 'La lumière passe sans qu’on voie net : translucide.' },
-            { txt: 'La gomme', ic: '🧽', bac: 0, pourquoi: 'Aucune lumière ne passe : opaque.' },
+            { txt: 'La gomme', img: 'img/gomme-dessin.svg', bac: 0, pourquoi: 'Aucune lumière ne passe : opaque.' },
             { txt: 'La règle en plastique', ic: '📏', bac: 2, pourquoi: 'On lit à travers : transparent.' }
           ] }
       ] },
